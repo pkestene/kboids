@@ -1,10 +1,33 @@
-#include <iostream>
-
 #include "Boids.h"
 #include "run.h"
 
+#include <iostream>
+#include <argh.h>
+
+
 // Include Kokkos Headers
 #include<Kokkos_Core.hpp>
+
+// ===================================================
+// ===================================================
+void usage(const std::string &app_name)
+{
+    std::string msg =
+      app_name +
+      " miniapp\n"
+      "\n"
+      "Usage:\n"
+      "  " +
+      app_name +
+      " [OPTION...]\n"
+      "  -n, --nboids arg        Number of boids (default: 1000)\n"
+      "  -i, --iter arg          Number of time steps (default: 100)\n"
+      "  -s, --seed arg          Random seed (default: 42)\n"
+      "  -g, --gui               add a simple visualization gui (require FORGE library)\n"
+      "  -h, --help              Show this help";
+
+      std::cout << msg << std::endl;
+}
 
 // ===================================================
 // ===================================================
@@ -35,23 +58,38 @@ void print_kokkos_config()
 int main(int argc, char* argv[])
 {
 
-  int nBoids     = (argc>1) ? std::atoi(argv[1]) : 1000;
-  uint32_t nIter = (argc>2) ? std::atoi(argv[2]) : 1000;
-  uint64_t seed  = 42;
+  argh::parser cmdl({
+      "-n", "--nboids",
+      "-i", "--iter",
+      "-s", "--seed",
+      "-g", "--gui"});
+    cmdl.parse(argc, argv);
 
-  if (argc>3)
+
+  int nBoids;
+  cmdl({"n", "nboids"}, 1000) >> nBoids;
+
+  uint32_t nIter;
+  cmdl({"i", "iter"}, 100) >> nIter;
+
+  // initialize the random generator pool
+  //uint64_t seed = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+  uint64_t seed;
+  cmdl({"s", "seed"}, 42) >> seed;
+
+  bool guiEnabled = cmdl[{"g","--gui"}];
+  if (guiEnabled)
   {
-    seed = std::atoi(argv[3]);
-  }
-  else
-  {
-    // initialize the random generator pool
-    uint64_t ticks = std::chrono::high_resolution_clock::now().time_since_epoch().count();
-
-    std::cout << "[" << __FUNCTION__ << "]:"
-              << " Using random seed: " << ticks << std::endl;
+    std::cout << "GUI enabled, we limit the number of boids to 1000\n";
+    nBoids = (nBoids > 1000) ? 1000 : nBoids;
   }
 
+  if (cmdl[{"-h", "--help"}]) {
+        usage(cmdl[0]);
+        return 0;
+  }
+
+  // =================================================
 
   //Initialize Kokkos
   Kokkos::initialize(argc,argv);
@@ -64,5 +102,7 @@ int main(int argc, char* argv[])
   }
 
   Kokkos::finalize();
+
+  return EXIT_SUCCESS;
 
 } // main

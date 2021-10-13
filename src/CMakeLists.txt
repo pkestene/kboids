@@ -16,4 +16,5 @@ target_include_directories(boids
 target_link_libraries(boids
   PRIVATE
   Kokkos::kokkos
+  argh
   io::lodepng)
