@@ -23,7 +23,8 @@ void usage(const std::string &app_name)
       "  -n, --nboids arg        Number of boids (default: 1000)\n"
       "  -i, --iter arg          Number of time steps (default: 100)\n"
       "  -s, --seed arg          Random seed (default: 42)\n"
-      "  -g, --gui               add a simple visualization gui (require FORGE library)\n"
+      "  -d, --dump              Dump data to PNG files\n"
+      "  -g, --gui               Add a simple visualization gui (require FORGE library)\n"
       "  -h, --help              Show this help";
 
       std::cout << msg << std::endl;
@@ -62,6 +63,7 @@ int main(int argc, char* argv[])
       "-n", "--nboids",
       "-i", "--iter",
       "-s", "--seed",
+      "-d", "--dump",
       "-g", "--gui"});
     cmdl.parse(argc, argv);
 
@@ -76,6 +78,8 @@ int main(int argc, char* argv[])
   //uint64_t seed = std::chrono::high_resolution_clock::now().time_since_epoch().count();
   uint64_t seed;
   cmdl({"s", "seed"}, 42) >> seed;
+
+  bool dump_data = cmdl[{"d","--dump"}];
 
   bool guiEnabled = cmdl[{"g","--gui"}];
   if (guiEnabled)
@@ -97,7 +101,7 @@ int main(int argc, char* argv[])
   {
     print_kokkos_config();
 
-    run_boids_dance(nBoids, nIter, seed);
+    run_boids_dance(nBoids, nIter, seed, dump_data);
 
   }
 

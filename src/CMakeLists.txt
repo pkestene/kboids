@@ -13,6 +13,18 @@ target_sources(boids
   run.cpp
   main.cpp)
 
+# add timer
+if (Kokkos_ENABLE_OPENMP)
+  target_sources(boids
+    PRIVATE
+    time/OpenMPTimer.cpp)
+elseif (NOT Kokkos_ENABLE_CUDA)
+  target_sources(boids
+    PRIVATE
+    time/SimpleTimer.cpp)
+endif()
+
+
 target_include_directories(boids
   PRIVATE
   ${CMAKE_SOURCE_DIR}/src)
