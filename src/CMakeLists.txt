@@ -1,5 +1,9 @@
 add_subdirectory(io)
 
+if (Forge_FOUND)
+  add_subdirectory(forge)
+endif()
+
 # define how to build and link
 add_executable(boids "")
 

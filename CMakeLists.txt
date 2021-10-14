@@ -22,6 +22,14 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 #
+# External dependency
+#
+option (USE_FORGE "Enable/disable Forge (GUI library)" OFF)
+if (USE_FORGE)
+  find_package(Forge)
+endif()
+
+#
 # sources
 #
 
@@ -59,3 +67,9 @@ if (Kokkos_ENABLE_CUDA)
   message("  CUDA Compiler exec : ${CUDA_NVCC_EXECUTABLE}")
   message("  CUDA Compile flags : ${CUDA_NVCC_FLAGS}")
 endif(Kokkos_ENABLE_CUDA)
+
+if (Forge_FOUND)
+  message("  Forge library : ${Forge_VERSION}")
+else ()
+  message("  Forge library : not available")
+endif (Forge_FOUND)
