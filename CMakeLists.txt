@@ -26,6 +26,7 @@ endif()
 #
 option (USE_FORGE "Enable/disable Forge (GUI library)" OFF)
 if (USE_FORGE)
+  find_package(OpenGL)
   find_package(Forge)
 endif()
 
