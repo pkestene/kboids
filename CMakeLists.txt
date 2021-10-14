@@ -39,11 +39,12 @@ add_subdirectory(external/kokkos)
 add_subdirectory(external/argh)
 
 # build the miniapp
-if (NOT Kokkos_ENABLE_OPENMP)
-  message(FATAL_ERROR "Can't build if Kokkos_ENABLE_OPENMP is off.")
-else()
-  add_subdirectory(src)
-endif()
+# if (NOT Kokkos_ENABLE_OPENMP)
+#   message(FATAL_ERROR "Can't build if Kokkos_ENABLE_OPENMP is off.")
+# else()
+#   add_subdirectory(src)
+# endif()
+add_subdirectory(src)
 
 ##################### PRINT CONFIGURE STATUS ######################
 message("//===================================================")

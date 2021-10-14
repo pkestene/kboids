@@ -15,6 +15,8 @@ using Timer = SimpleTimer;
 #endif
 
 
+// =====================================================================================
+// =====================================================================================
 void run_boids_dance(uint32_t nBoids, uint32_t nIter, uint64_t seed, bool dump_data)
 {
 
@@ -55,6 +57,6 @@ void run_boids_dance(uint32_t nBoids, uint32_t nIter, uint64_t seed, bool dump_d
   // report time spent in computations
   auto time_seconds = timer.elapsed();
   std::cout << "Total time : " << time_seconds << " seconds\n";
-  std::cout << "Throughput : " << (nBoids*nIter)/time_seconds << " Boids-updates/s \n";
+  std::cout << "Throughput : " << (nBoids*nIter)/time_seconds/1e6 << " MBoids-updates/s \n";
 
-} // run_boids_dance
+} // run_boids_dance_v0

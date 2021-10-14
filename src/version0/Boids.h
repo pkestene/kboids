@@ -20,7 +20,7 @@ struct Boid
 };
 
 //! type alias for creating image
-using PngData = Kokkos::View<unsigned char***, Kokkos::LayoutRight, Kokkos::OpenMP>;
+using PngData = Kokkos::View<unsigned char***, Kokkos::LayoutRight, Kokkos::Serial>;
 
 // ===================================================
 // ===================================================
