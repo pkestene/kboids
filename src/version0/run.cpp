@@ -17,17 +17,17 @@ using Timer = SimpleTimer;
 
 // =====================================================================================
 // =====================================================================================
-void run_boids_dance(uint32_t nBoids, uint32_t nIter, uint64_t seed, bool dump_data)
+void run_boids_flight(uint32_t nBoids, uint32_t nIter, uint64_t seed, bool dump_data)
 {
 
-  // create a Dance object
-  Dance dance(nBoids);
+  // create a BoidsData object
+  BoidsData boidsData(nBoids);
 
   // init friends and ennemies
   MyRandomPool myRandPool(seed);
 
-  initPositions(dance, myRandPool.pool);
-  shuffleFriendsAndEnnemies(dance, myRandPool.pool);
+  initPositions(boidsData, myRandPool.pool);
+  shuffleFriendsAndEnnemies(boidsData, myRandPool.pool);
 
   // 2d array for display
   PngData data("render_image", 768, 768, 4);
@@ -38,17 +38,17 @@ void run_boids_dance(uint32_t nBoids, uint32_t nIter, uint64_t seed, bool dump_d
   {
 
     timer.start();
-    updatePositions(dance);
+    updatePositions(boidsData);
 
     if (iTime % 20 == 0)
-      shuffleFriendsAndEnnemies(dance, myRandPool.pool);
+      shuffleFriendsAndEnnemies(boidsData, myRandPool.pool);
     timer.stop();
 
     // should we dump data to file ?
     if (dump_data and (iTime % 1 == 0))
     {
       std::cout << "Save data at time step : " << iTime << "\n";
-      renderPositions(data, dance);
+      renderPositions(data, boidsData);
       savePositions("boids",iTime,data);
     }
 
@@ -59,4 +59,4 @@ void run_boids_dance(uint32_t nBoids, uint32_t nIter, uint64_t seed, bool dump_d
   std::cout << "Total time : " << time_seconds << " seconds\n";
   std::cout << "Throughput : " << (nBoids*nIter)/time_seconds/1e6 << " MBoids-updates/s \n";
 
-} // run_boids_dance_v0
+} // run_boids_flight

@@ -101,7 +101,7 @@ int main(int argc, char* argv[])
   {
     print_kokkos_config();
 
-    run_boids_dance(nBoids, nIter, seed, dump_data);
+    run_boids_flight(nBoids, nIter, seed, dump_data);
 
   }
 

@@ -24,12 +24,12 @@ using PngData = Kokkos::View<unsigned char***, Kokkos::LayoutRight, Kokkos::Seri
 
 // ===================================================
 // ===================================================
-struct Dance
+struct BoidsData
 {
   using Flock  = Kokkos::View<Boid*, Kokkos::DefaultExecutionSpace>;
   using VecInt = Kokkos::View<int*, Kokkos::DefaultExecutionSpace>;
 
-  Dance(int nBoids)
+  BoidsData(int nBoids)
     : nBoids(nBoids),
       flock("flock",nBoids),
       flock_new("flock_new",nBoids),
@@ -60,7 +60,7 @@ struct Dance
   //! mirror of flock data on host (for image rendering)
   Flock::HostMirror flock_host;
 
-}; // struct Dance
+}; // struct BoidsData
 
 
 // ===================================================
@@ -91,11 +91,11 @@ public:
 
 // ===================================================
 // ===================================================
-void initPositions(Dance& dance, MyRandomPool::RGPool_t& rand_pool);
+void initPositions(BoidsData& boidsData, MyRandomPool::RGPool_t& rand_pool);
 
 // ===================================================
 // ===================================================
-void shuffleFriendsAndEnnemies(Dance& dance, MyRandomPool::RGPool_t& rand_pool);
+void shuffleFriendsAndEnnemies(BoidsData& boidsData, MyRandomPool::RGPool_t& rand_pool);
 
 KOKKOS_INLINE_FUNCTION
 double SQR(const double& tmp) {return tmp*tmp;}
@@ -119,11 +119,11 @@ void compute_direction(const Boid& b1, const Boid& b2,  Boid& dir)
 
 // ===================================================
 // ===================================================
-void updatePositions(Dance& dance);
+void updatePositions(BoidsData& boidsData);
 
 // ===================================================
 // ===================================================
-void renderPositions(PngData data, Dance& dance);
+void renderPositions(PngData data, BoidsData& boidsData);
 
 // ===================================================
 // ===================================================

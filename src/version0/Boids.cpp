@@ -8,60 +8,60 @@
 
 // ===================================================
 // ===================================================
-void initPositions(Dance& dance, MyRandomPool::RGPool_t& rand_pool)
+void initPositions(BoidsData& boidsData, MyRandomPool::RGPool_t& rand_pool)
 {
 
   using rnd_t = MyRandomPool::rnd_t;
 
-  Kokkos::parallel_for(dance.nBoids, KOKKOS_LAMBDA(const int& index)
+  Kokkos::parallel_for(boidsData.nBoids, KOKKOS_LAMBDA(const int& index)
   {
     rnd_t rand_gen = rand_pool.get_state();
 
     // shuffle friends and ennemies
-    dance.flock(index).position[0] = Kokkos::rand<rnd_t,double>::draw(rand_gen, -1.0, 1.0);
-    dance.flock(index).position[1] = Kokkos::rand<rnd_t,double>::draw(rand_gen, -1.0, 1.0);
+    boidsData.flock(index).position[0] = Kokkos::rand<rnd_t,double>::draw(rand_gen, -1.0, 1.0);
+    boidsData.flock(index).position[1] = Kokkos::rand<rnd_t,double>::draw(rand_gen, -1.0, 1.0);
 
     // free random gen state, so that it can used by other threads later.
     rand_pool.free_state(rand_gen);
 
   });
 
-} // Dance::initPositions
+} // BoidsData::initPositions
 
 // ===================================================
 // ===================================================
-void shuffleFriendsAndEnnemies(Dance& dance, MyRandomPool::RGPool_t& rand_pool)
+void shuffleFriendsAndEnnemies(BoidsData& boidsData, MyRandomPool::RGPool_t& rand_pool)
 {
 
   using rnd_t = MyRandomPool::rnd_t;
 
-  Kokkos::parallel_for(dance.nBoids, KOKKOS_LAMBDA(const int& index)
+  Kokkos::parallel_for(boidsData.nBoids, KOKKOS_LAMBDA(const int& index)
   {
     rnd_t rand_gen = rand_pool.get_state();
 
     // shuffle friends and ennemies
-    dance.friends(index) = Kokkos::rand<rnd_t,int>::draw(rand_gen, dance.nBoids);
-    dance.ennemies(index) = Kokkos::rand<rnd_t,int>::draw(rand_gen, dance.nBoids);
+    boidsData.friends(index) = Kokkos::rand<rnd_t,int>::draw(rand_gen, boidsData.nBoids);
+    boidsData.ennemies(index) = Kokkos::rand<rnd_t,int>::draw(rand_gen, boidsData.nBoids);
 
     // free random gen state, so that it can used by other threads later.
     rand_pool.free_state(rand_gen);
 
   });
 
-} // Dance::shuffleFriendsAndEnnemies
+} // BoidsData::shuffleFriendsAndEnnemies
 
 // ===================================================
 // ===================================================
-void updatePositions(Dance& dance)
+void updatePositions(BoidsData& boidsData)
 {
 
-  Kokkos::parallel_for(dance.nBoids, KOKKOS_LAMBDA(const int& index)
+  Kokkos::parallel_for(boidsData.nBoids, KOKKOS_LAMBDA(const int& index)
   {
-    auto x = dance.flock(index).position[0];
-    auto y = dance.flock(index).position[1];
+    auto x = boidsData.flock(index).position[0];
+    auto y = boidsData.flock(index).position[1];
 
-    auto index_friend = dance.friends(index);
-    auto index_ennemy = dance.ennemies(index);
+    auto index_friend = boidsData.friends(index);
+    auto index_ennemy = boidsData.ennemies(index);
 
     // rule #1, move towards box center
     double dx = -0.01 * x;
@@ -70,18 +70,18 @@ void updatePositions(Dance& dance)
     Boid dir;
 
     // rule #2, move towards friend
-    compute_direction(dance.flock(index),dance.flock(index_friend), dir);
+    compute_direction(boidsData.flock(index),boidsData.flock(index_friend), dir);
     dx += 0.05 * dir.position[0];
     dy += 0.05 * dir.position[1];
 
     // rule #3, move away from ennemy
-    compute_direction(dance.flock(index),dance.flock(index_ennemy), dir);
+    compute_direction(boidsData.flock(index),boidsData.flock(index_ennemy), dir);
     dx -= 0.03 * dir.position[0];
     dy -= 0.03 * dir.position[1];
 
     // update positions
-    dance.flock_new(index).position[0] = x + dx;
-    dance.flock_new(index).position[1] = y + dy;
+    boidsData.flock_new(index).position[0] = x + dx;
+    boidsData.flock_new(index).position[1] = y + dy;
 
     //printf("%d | %f %f | %f %f\n",index,x,y,x+dx,y+dy);
 
@@ -90,25 +90,25 @@ void updatePositions(Dance& dance)
 
   // swap flock and flock_new
   {
-    Dance::Flock tmp = dance.flock;
-    dance.flock      = dance.flock_new;
-    dance.flock_new  = tmp;
+    BoidsData::Flock tmp = boidsData.flock;
+    boidsData.flock      = boidsData.flock_new;
+    boidsData.flock_new  = tmp;
   }
 
 }
 
 // ===================================================
 // ===================================================
-void renderPositions(PngData data, Dance& dance)
+void renderPositions(PngData data, BoidsData& boidsData)
 {
 
   auto scale = (data.extent(0)-1)/2.0;
 
   // 1. copy back on host boids positions
-  Kokkos::deep_copy(dance.flock_host, dance.flock);
+  Kokkos::deep_copy(boidsData.flock_host, boidsData.flock);
 
   // 2. create image
-  //auto pol = Kokkos::RangePolicy<>(Kokkos::OpenMP(), 0, dance.nBoids);
+  //auto pol = Kokkos::RangePolicy<>(Kokkos::OpenMP(), 0, boidsData.nBoids);
   //Kokkos::parallel_for(pol, KOKKOS_LAMBDA(const int& index)
 
 
@@ -123,12 +123,12 @@ void renderPositions(PngData data, Dance& dance)
     }
 
 
-  for(int index=0; index<dance.nBoids; ++index)
+  for(int index=0; index<boidsData.nBoids; ++index)
   {
-    int i = (int) (floor((dance.flock_host(index).position[0]+1)*scale));
-    int j = (int) (floor((dance.flock_host(index).position[1]+1)*scale));
+    int i = (int) (floor((boidsData.flock_host(index).position[0]+1)*scale));
+    int j = (int) (floor((boidsData.flock_host(index).position[1]+1)*scale));
 
-    //printf("%d %d %d %f %f\n",index,i,j,dance.flock_host(index).position[0]+1,dance.flock_host(index).position[1]+1);
+    //printf("%d %d %d %f %f\n",index,i,j,boidsData.flock_host(index).position[0]+1,boidsData.flock_host(index).position[1]+1);
 
     if (i>=0 and i<data.extent(0) and
         j>=0 and j<data.extent(1))

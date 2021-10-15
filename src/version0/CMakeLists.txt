@@ -24,9 +24,9 @@ target_include_directories(boids
   ${CMAKE_SOURCE_DIR}/src
   ${CMAKE_SOURCE_DIR}/src/time)
 
-target_compile_options(boids
-  PUBLIC
-  -fopt-info)
+# target_compile_options(boids
+#   PUBLIC
+#   -fopt-info)
 
 target_link_libraries(boids
   PRIVATE
