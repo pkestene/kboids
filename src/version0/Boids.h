@@ -28,6 +28,7 @@ struct BoidsData
 {
   using Flock  = Kokkos::View<Boid*, Kokkos::DefaultExecutionSpace>;
   using VecInt = Kokkos::View<int*, Kokkos::DefaultExecutionSpace>;
+  using VecFloat = Kokkos::View<float*, Kokkos::DefaultExecutionSpace>;
 
   BoidsData(int nBoids)
     : nBoids(nBoids),
@@ -36,6 +37,9 @@ struct BoidsData
       friends("friends",nBoids),
       ennemies("ennemies",nBoids),
       flock_host()
+#ifdef FORGE_ENABLED
+      ,xy("xy",2*nBoids)
+#endif
   {
 
     flock_host = Kokkos::create_mirror(flock);
@@ -59,6 +63,10 @@ struct BoidsData
 
   //! mirror of flock data on host (for image rendering only)
   Flock::HostMirror flock_host;
+
+#ifdef FORGE_ENABLED
+  VecFloat xy;
+#endif
 
 }; // struct BoidsData
 
@@ -124,6 +132,10 @@ void updatePositions(BoidsData& boidsData);
 // ===================================================
 // ===================================================
 void renderPositions(PngData data, BoidsData& boidsData);
+
+// ===================================================
+// ===================================================
+void copyPositionsForRendering(BoidsData& boidsData);
 
 // ===================================================
 // ===================================================

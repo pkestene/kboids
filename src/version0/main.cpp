@@ -102,21 +102,32 @@ int main(int argc, char* argv[])
   {
     print_kokkos_config();
 
-    LIKWID_MARKER_INIT;
+    if (guiEnabled)
+    {
+#ifdef FORGE_ENABLED
+      run_boids_flight_gui(nBoids, nIter, seed, dump_data);
+#else
+      std::cerr << "Rerun cmake and enable Forge library.\n";
+#endif
+    }
+    else
+    {
+
+      LIKWID_MARKER_INIT;
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    {
+      {
         LIKWID_MARKER_THREADINIT;
-
         LIKWID_MARKER_REGISTER("updatePositions");
+      }
+
+      run_boids_flight(nBoids, nIter, seed, dump_data);
+
+      LIKWID_MARKER_CLOSE;
+
     }
-
-    run_boids_flight(nBoids, nIter, seed, dump_data);
-
-    LIKWID_MARKER_CLOSE;
-
   }
 
   Kokkos::finalize();

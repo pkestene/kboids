@@ -30,8 +30,12 @@ target_link_libraries(boids
   argh
   io::lodepng)
 
- if(USE_LIKWID)
-   target_link_libraries(boids PRIVATE likwid::likwid)
-   target_compile_definitions(boids PRIVATE -DLIKWID_PERFMON)
-   target_include_directories(boids PRIVATE ${LIKWID_INCLUDE_DIR})
- endif()
+if(USE_LIKWID)
+  target_link_libraries(boids PRIVATE likwid::likwid)
+  target_compile_definitions(boids PRIVATE -DLIKWID_PERFMON)
+  target_include_directories(boids PRIVATE ${LIKWID_INCLUDE_DIR})
+endif()
+
+if(USE_FORGE)
+  target_link_libraries(boids PRIVATE Forge::forge)
+endif()

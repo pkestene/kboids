@@ -99,6 +99,26 @@ void updatePositions(BoidsData& boidsData)
 
 // ===================================================
 // ===================================================
+void copyPositionsForRendering(BoidsData& boidsData)
+{
+
+#ifdef FORGE_ENABLED
+
+  Kokkos::parallel_for(boidsData.nBoids, KOKKOS_LAMBDA(const int& index)
+  {
+    auto x = boidsData.flock(index).position[0];
+    auto y = boidsData.flock(index).position[1];
+
+    boidsData.xy(2*index)   = (float)x;
+    boidsData.xy(2*index+1) = (float)y;
+  });
+
+#endif
+
+}
+
+// ===================================================
+// ===================================================
 void renderPositions(PngData data, BoidsData& boidsData)
 {
 
