@@ -3,17 +3,8 @@
 #include <iostream>
 #include <cstdint>
 
-#ifdef KOKKOS_ENABLE_CUDA
-#include "time/CudaTimer.h"
-using Timer = CudaTimer;
-#elif defined(KOKKOS_ENABLE_OPENMP)
-#include "time/OpenMPTimer.h"
-using Timer = OpenMPTimer;
-#else
-#include "time/SimpleTimer.h"
-using Timer = SimpleTimer;
-#endif
-
+#include "utils/likwid-utils.h"
+#include "time/Timer.h"
 
 // =====================================================================================
 // =====================================================================================
@@ -38,7 +29,22 @@ void run_boids_flight(uint32_t nBoids, uint32_t nIter, uint64_t seed, bool dump_
   {
 
     timer.start();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+      LIKWID_MARKER_START("updatePositions");
+    }
+
     updatePositions(boidsData);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+      LIKWID_MARKER_STOP("updatePositions");
+    }
 
     if (iTime % 20 == 0)
       shuffleFriendsAndEnnemies(boidsData, myRandPool.pool);

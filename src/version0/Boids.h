@@ -46,18 +46,18 @@ struct BoidsData
   int    nBoids;
 
   //! set (flock) of boids
-  Flock  flock;
+  Flock flock;
 
   //! temp array of boids used to compute postion update (one time step)
-  Flock  flock_new;
+  Flock flock_new;
 
-  //! friend index
+  //! vector of friend index
   VecInt friends;
 
-  // enemy index
+  //! vector of enemy index
   VecInt ennemies;
 
-  //! mirror of flock data on host (for image rendering)
+  //! mirror of flock data on host (for image rendering only)
   Flock::HostMirror flock_host;
 
 }; // struct BoidsData

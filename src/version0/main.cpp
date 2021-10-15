@@ -4,9 +4,10 @@
 #include <iostream>
 #include <argh.h>
 
-
 // Include Kokkos Headers
 #include<Kokkos_Core.hpp>
+
+#include "utils/likwid-utils.h"
 
 // ===================================================
 // ===================================================
@@ -101,7 +102,20 @@ int main(int argc, char* argv[])
   {
     print_kokkos_config();
 
+    LIKWID_MARKER_INIT;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        LIKWID_MARKER_THREADINIT;
+
+        LIKWID_MARKER_REGISTER("updatePositions");
+    }
+
     run_boids_flight(nBoids, nIter, seed, dump_data);
+
+    LIKWID_MARKER_CLOSE;
 
   }
 

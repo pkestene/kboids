@@ -30,6 +30,11 @@ if (USE_FORGE)
   find_package(Forge)
 endif()
 
+option(USE_LIKWID "Enable LIKWID performance counters")
+if(USE_LIKWID)
+  find_package(likwid)
+endif()
+
 #
 # sources
 #
@@ -70,8 +75,15 @@ if (Kokkos_ENABLE_CUDA)
   message("  CUDA Compile flags : ${CUDA_NVCC_FLAGS}")
 endif(Kokkos_ENABLE_CUDA)
 
-if (Forge_FOUND)
-  message("  Forge library : ${Forge_VERSION}")
-else ()
-  message("  Forge library : not available")
-endif (Forge_FOUND)
+message("  Forge library enabled  : ${USE_FORGE}")
+message("  Forge library found    : ${Forge_FOUND}")
+message("  Forge library version  : ${Forge_VERSION}")
+message("  Forge libraries        : ${Forge_LIBRARIES}")
+message("  Forge include dirs     : ${Forge_INCLUDE_DIRS}")
+
+message("  Likwid library enabled : ${USE_LIKWID}")
+message("  Likwid library found   : ${likwid_FOUND}")
+#message("  Likwid library version : ${likwid_VERSION}")
+message("  likwid libraries       : ${LIKWID_LIBRARIES}")
+message("  likwid include dirs    : ${LIKWID_INCLUDE_DIRS}")
+message("  likwid nvidia interface: ${LIKWID_NVIDIA_INTERFACE}")
