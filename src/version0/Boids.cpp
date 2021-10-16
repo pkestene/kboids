@@ -17,7 +17,7 @@ void initPositions(BoidsData& boidsData, MyRandomPool::RGPool_t& rand_pool)
   {
     rnd_t rand_gen = rand_pool.get_state();
 
-    // shuffle friends and ennemies
+    // birds positions
     boidsData.flock(index).position[0] = Kokkos::rand<rnd_t,double>::draw(rand_gen, -1.0, 1.0);
     boidsData.flock(index).position[1] = Kokkos::rand<rnd_t,double>::draw(rand_gen, -1.0, 1.0);
 
@@ -30,8 +30,12 @@ void initPositions(BoidsData& boidsData, MyRandomPool::RGPool_t& rand_pool)
 
 // ===================================================
 // ===================================================
-void shuffleFriendsAndEnnemies(BoidsData& boidsData, MyRandomPool::RGPool_t& rand_pool)
+void shuffleFriendsAndEnnemies(BoidsData& boidsData, MyRandomPool::RGPool_t& rand_pool, float rate)
 {
+
+  // rate should be in range [0,1]
+  rate = (rate < 0) ? 0 : rate;
+  rate = (rate > 1) ? 1 : rate;
 
   using rnd_t = MyRandomPool::rnd_t;
 
@@ -39,9 +43,14 @@ void shuffleFriendsAndEnnemies(BoidsData& boidsData, MyRandomPool::RGPool_t& ran
   {
     rnd_t rand_gen = rand_pool.get_state();
 
+    float r = Kokkos::rand<rnd_t,float>::draw(rand_gen, 0, 1);
+
     // shuffle friends and ennemies
-    boidsData.friends(index) = Kokkos::rand<rnd_t,int>::draw(rand_gen, boidsData.nBoids);
-    boidsData.ennemies(index) = Kokkos::rand<rnd_t,int>::draw(rand_gen, boidsData.nBoids);
+    if (r < rate)
+    {
+      boidsData.friends(index) = Kokkos::rand<rnd_t,int>::draw(rand_gen, boidsData.nBoids);
+      boidsData.ennemies(index) = Kokkos::rand<rnd_t,int>::draw(rand_gen, boidsData.nBoids);
+    }
 
     // free random gen state, so that it can used by other threads later.
     rand_pool.free_state(rand_gen);

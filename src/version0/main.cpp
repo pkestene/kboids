@@ -83,11 +83,6 @@ int main(int argc, char* argv[])
   bool dump_data = cmdl[{"d","--dump"}];
 
   bool guiEnabled = cmdl[{"g","--gui"}];
-  if (guiEnabled)
-  {
-    std::cout << "GUI enabled, we limit the number of boids to 1000\n";
-    nBoids = (nBoids > 1000) ? 1000 : nBoids;
-  }
 
   if (cmdl[{"-h", "--help"}]) {
         usage(cmdl[0]);
@@ -122,6 +117,9 @@ int main(int argc, char* argv[])
         LIKWID_MARKER_THREADINIT;
         LIKWID_MARKER_REGISTER("updatePositions");
       }
+
+      // std::cout << "GUI enabled, we limit the number of boids to 1000\n";
+      // nBoids = (nBoids > 1000) ? 1000 : nBoids;
 
       run_boids_flight(nBoids, nIter, seed, dump_data);
 

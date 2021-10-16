@@ -29,7 +29,7 @@ void run_boids_flight(uint32_t nBoids, uint32_t nIter, uint64_t seed, bool dump_
   MyRandomPool myRandPool(seed);
 
   initPositions(boidsData, myRandPool.pool);
-  shuffleFriendsAndEnnemies(boidsData, myRandPool.pool);
+  shuffleFriendsAndEnnemies(boidsData, myRandPool.pool, 1.0);
 
   // 2d array for display
   PngData data("render_image", 768, 768, 4);
@@ -58,7 +58,7 @@ void run_boids_flight(uint32_t nBoids, uint32_t nIter, uint64_t seed, bool dump_
     }
 
     if (iTime % 20 == 0)
-      shuffleFriendsAndEnnemies(boidsData, myRandPool.pool);
+      shuffleFriendsAndEnnemies(boidsData, myRandPool.pool, 0.1);
     timer.stop();
 
     // should we dump data to file ?
@@ -91,7 +91,7 @@ void run_boids_flight_gui(uint32_t nBoids, uint32_t nIter, uint64_t seed, bool d
   MyRandomPool myRandPool(seed);
 
   initPositions(boidsData, myRandPool.pool);
-  shuffleFriendsAndEnnemies(boidsData, myRandPool.pool);
+  shuffleFriendsAndEnnemies(boidsData, myRandPool.pool, 1.0);
 
   // Forge init
   const int DIMX=800;
@@ -100,7 +100,7 @@ void run_boids_flight_gui(uint32_t nBoids, uint32_t nIter, uint64_t seed, bool d
   wnd.makeCurrent();
 
   forge::Chart chart(FG_CHART_2D);
-  chart.setAxesLimits(-1.05f, 1.05f, -1.05f, 1.05f);
+  chart.setAxesLimits(-2.05f, 2.05f, -2.05f, 2.05f);
 
   forge::Plot boidsXY =
     chart.plot(nBoids, forge::f32, FG_PLOT_SCATTER, FG_MARKER_CIRCLE);
@@ -118,7 +118,7 @@ void run_boids_flight_gui(uint32_t nBoids, uint32_t nIter, uint64_t seed, bool d
     copyPositionsForRendering(boidsData);
 
     if (iTime % 20 == 0)
-      shuffleFriendsAndEnnemies(boidsData, myRandPool.pool);
+      shuffleFriendsAndEnnemies(boidsData, myRandPool.pool, 0.1);
 
     copyToGLBuffer(handles, (ComputeResourceHandle)boidsData.xy.data(),
                    boidsXY.verticesSize());

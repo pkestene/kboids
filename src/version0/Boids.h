@@ -41,9 +41,7 @@ struct BoidsData
       ,xy("xy",2*nBoids)
 #endif
   {
-
     flock_host = Kokkos::create_mirror(flock);
-
   }
 
   //! number of boids
@@ -103,11 +101,18 @@ void initPositions(BoidsData& boidsData, MyRandomPool::RGPool_t& rand_pool);
 
 // ===================================================
 // ===================================================
-void shuffleFriendsAndEnnemies(BoidsData& boidsData, MyRandomPool::RGPool_t& rand_pool);
+/**
+ * Randomly change friends and ennemies.
+ */
+void shuffleFriendsAndEnnemies(BoidsData& boidsData, MyRandomPool::RGPool_t& rand_pool, float rate);
 
+// ===================================================
+// ===================================================
 KOKKOS_INLINE_FUNCTION
 double SQR(const double& tmp) {return tmp*tmp;}
 
+// ===================================================
+// ===================================================
 KOKKOS_INLINE_FUNCTION
 void compute_direction(const Boid& b1, const Boid& b2,  Boid& dir)
 {
