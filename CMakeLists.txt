@@ -24,6 +24,19 @@ endif()
 #
 # External dependency
 #
+
+# use Nvidia Thrust for sort algorithms implementation
+find_package(Thrust)
+if (Thrust_FOUND)
+  if(Kokkos_ENABLE_CUDA)
+    thrust_create_target(Thrust)
+  elseif(Kokkos_ENABLE_OPENMP)
+    thrust_create_target(ThrustOMP HOST CPP DEVICE OMP)
+  endif()
+else()
+  message(WARNING "Nvidia Thrust is required (even for OpenMP) to build version1")
+endif()
+
 option (USE_FORGE "Enable/disable Forge (GUI library)" OFF)
 if (USE_FORGE)
   find_package(OpenGL)
@@ -47,11 +60,6 @@ add_subdirectory(external/kokkos)
 add_subdirectory(external/argh)
 
 # build the miniapp
-# if (NOT Kokkos_ENABLE_OPENMP)
-#   message(FATAL_ERROR "Can't build if Kokkos_ENABLE_OPENMP is off.")
-# else()
-#   add_subdirectory(src)
-# endif()
 add_subdirectory(src)
 
 ##################### PRINT CONFIGURE STATUS ######################
