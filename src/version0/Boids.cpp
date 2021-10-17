@@ -104,17 +104,8 @@ void updatePositions(BoidsData& boidsData)
   });
 
   // swap old and new data
-  {
-    auto tmp         = boidsData.x;
-    boidsData.x      = boidsData.x_new;
-    boidsData.x_new  = tmp;
-  }
-  // swap old and new data
-  {
-    auto tmp         = boidsData.y;
-    boidsData.y      = boidsData.y_new;
-    boidsData.y_new  = tmp;
-  }
+  std::swap(boidsData.x, boidsData.x_new);
+  std::swap(boidsData.y, boidsData.y_new);
 
 }
 
