@@ -11,20 +11,23 @@
 void initPositions(BoidsData& boidsData, MyRandomPool::RGPool_t& rand_pool)
 {
 
-  using rnd_t = MyRandomPool::rnd_t;
+  Kokkos::fill_random(boidsData.x, rand_pool, -1.0, 1.0);
+  Kokkos::fill_random(boidsData.y, rand_pool, -1.0, 1.0);
 
-  Kokkos::parallel_for(boidsData.nBoids, KOKKOS_LAMBDA(const int& index)
-  {
-    rnd_t rand_gen = rand_pool.get_state();
+  // using rnd_t = MyRandomPool::rnd_t;
 
-    // birds positions
-    boidsData.x(index) = Kokkos::rand<rnd_t,double>::draw(rand_gen, -1.0, 1.0);
-    boidsData.y(index) = Kokkos::rand<rnd_t,double>::draw(rand_gen, -1.0, 1.0);
+  // Kokkos::parallel_for(boidsData.nBoids, KOKKOS_LAMBDA(const int& index)
+  // {
+  //   rnd_t rand_gen = rand_pool.get_state();
 
-    // free random gen state, so that it can used by other threads later.
-    rand_pool.free_state(rand_gen);
+  //   // birds positions
+  //   boidsData.x(index) = Kokkos::rand<rnd_t,double>::draw(rand_gen, -1.0, 1.0);
+  //   boidsData.y(index) = Kokkos::rand<rnd_t,double>::draw(rand_gen, -1.0, 1.0);
 
-  });
+  //   // free random gen state, so that it can used by other threads later.
+  //   rand_pool.free_state(rand_gen);
+
+  // });
 
 } // BoidsData::initPositions
 
