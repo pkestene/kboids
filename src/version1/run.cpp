@@ -31,6 +31,7 @@ void run_boids_flight(uint32_t nBoids, uint32_t nIter, uint64_t seed, bool dump_
   MyRandomPool myRandPool(seed);
 
   initPositions(boidsData, myRandPool.pool);
+  shuffleEnnemies(boidsData, myRandPool.pool, 1.0);
 
   Timer timer;
 
@@ -54,6 +55,9 @@ void run_boids_flight(uint32_t nBoids, uint32_t nIter, uint64_t seed, bool dump_
     {
       LIKWID_MARKER_STOP("updatePositions");
     }
+
+    if (iTime % 20 == 0)
+      shuffleEnnemies(boidsData, myRandPool.pool, 0.1);
 
     timer.stop();
 
@@ -79,15 +83,21 @@ void run_boids_flight_gui(uint32_t nBoids, uint32_t nIter, uint64_t seed, bool d
   MyRandomPool myRandPool(seed);
 
   initPositions(boidsData, myRandPool.pool);
+  shuffleEnnemies(boidsData, myRandPool.pool, 1.0);
 
   // Forge init
   const int DIMX=800;
   const int DIMY=800;
-  forge::Window wnd(DIMX, DIMY, "Boids flight version 0");
+  forge::Window wnd(DIMX, DIMY, "Boids flight version 1");
   wnd.makeCurrent();
 
   forge::Chart chart(FG_CHART_2D);
-  chart.setAxesLimits(-2.05f, 2.05f, -2.05f, 2.05f);
+  auto deltaX = BoidsData::XMAX-BoidsData::XMIN;
+  auto deltaY = BoidsData::YMAX-BoidsData::YMIN;
+  chart.setAxesLimits(BoidsData::XMIN-1.5*deltaX,
+                      BoidsData::XMAX+1.5*deltaX,
+                      BoidsData::YMIN-1.5*deltaY,
+                      BoidsData::YMAX+1.5*deltaY);
 
   forge::Plot boidsXY =
     chart.plot(nBoids, forge::f32, FG_PLOT_SCATTER, FG_MARKER_CIRCLE);
@@ -103,6 +113,8 @@ void run_boids_flight_gui(uint32_t nBoids, uint32_t nIter, uint64_t seed, bool d
   {
 
     updatePositions(boidsData);
+    if (iTime % 200 == 0)
+      shuffleEnnemies(boidsData, myRandPool.pool, 0.1);
 
     copyPositionsForRendering(boidsData);
 

@@ -1,65 +1,83 @@
 #include "Boids.h"
-
 #include "io/lodepng.h"
+#include "utils/sort-utils.h"
 
 #include <chrono>
 #include <iostream>
 #include <sstream>
-
-#include <Kokkos_Sort.hpp>
 
 // ===================================================
 // ===================================================
 void initPositions(BoidsData& boidsData, MyRandomPool::RGPool_t& rand_pool)
 {
 
+  Kokkos::fill_random(boidsData.x,  rand_pool, BoidsData::XMIN, BoidsData::XMAX);
+  Kokkos::fill_random(boidsData.y,  rand_pool, BoidsData::YMIN, BoidsData::YMAX);
+  Kokkos::fill_random(boidsData.dx, rand_pool, -1., 1.);
+  Kokkos::fill_random(boidsData.dy, rand_pool, -1., 1.);
+
+} // BoidsData::initPositions
+
+// ===================================================
+// ===================================================
+/* std::pair<float,float> updateAverageVelocity(BoidsData& boidsData) */
+/* { */
+
+/*   // this is just a reduction */
+/*   // we could also use a custom reducer, and place output directly in */
+/*   // device memory */
+/*   // see https://github.com/kokkos/kokkos/wiki/Custom-Reductions%3A-Built-In-Reducers-with-Custom-Scalar-Types */
+
+/*   float vx, vy; */
+
+/*   Kokkos::parallel_reduce("updateAverageVelocity x", boidsData.nBoids, */
+/*      KOKKOS_LAMBDA(const int index, float& value) */
+/*      { */
+/*        value += boidsData.dx(index); */
+/*      }, vx); */
+
+/*   Kokkos::parallel_reduce("updateAverageVelocity y", boidsData.nBoids, */
+/*      KOKKOS_LAMBDA(const int index, float& value) */
+/*      { */
+/*        value += boidsData.dy(index); */
+/*      }, vy); */
+
+/*   vx /= boidsData.nBoids; */
+/*   vy /= boidsData.nBoids; */
+
+/*   return std::make_pair(vx,vy); */
+
+/* } // updateAverageVelocity */
+
+// ===================================================
+// ===================================================
+void shuffleEnnemies(BoidsData& boidsData, MyRandomPool::RGPool_t& rand_pool, float rate)
+{
+
+  // rate should be in range [0,1]
+  rate = (rate < 0) ? 0 : rate;
+  rate = (rate > 1) ? 1 : rate;
+
   using rnd_t = MyRandomPool::rnd_t;
 
-  Kokkos::parallel_for("initPositions", boidsData.nBoids, KOKKOS_LAMBDA(const int& index)
+  Kokkos::parallel_for(boidsData.nBoids, KOKKOS_LAMBDA(const int& index)
   {
     rnd_t rand_gen = rand_pool.get_state();
 
-    // position
-    boidsData.flock(index).pos[0] = Kokkos::rand<rnd_t,double>::draw(rand_gen, -1.0, 1.0);
-    boidsData.flock(index).pos[1] = Kokkos::rand<rnd_t,double>::draw(rand_gen, -1.0, 1.0);
+    float r = Kokkos::rand<rnd_t,float>::draw(rand_gen, 0, 1);
 
-    // delta position
-    boidsData.flock(index).delta_pos[0] = Kokkos::rand<rnd_t,double>::draw(rand_gen, -0.01, 0.01);
-    boidsData.flock(index).delta_pos[1] = Kokkos::rand<rnd_t,double>::draw(rand_gen, -0.01, 0.01);
+    // shuffle friends and ennemies
+    if (r < rate)
+    {
+      boidsData.ennemies(index) = Kokkos::rand<rnd_t,int>::draw(rand_gen, boidsData.nBoids);
+    }
 
     // free random gen state, so that it can used by other threads later.
     rand_pool.free_state(rand_gen);
 
   });
 
-} // BoidsData::initPositions
-
-// ===================================================
-// ===================================================
-void updateAverageVelocity(BoidsData& boidsData, float& vx, float& vy)
-{
-
-  // this is just a reduction
-  // we could also use a custom reducer, and place output directly in
-  // device memory
-  // see https://github.com/kokkos/kokkos/wiki/Custom-Reductions%3A-Built-In-Reducers-with-Custom-Scalar-Types
-
-  Kokkos::parallel_reduce("updateAverageVelocity x", boidsData.nBoids,
-     KOKKOS_LAMBDA(const int index, float& value)
-     {
-       value += boidsData.flock(index).delta_pos[0];
-     }, vx);
-
-  Kokkos::parallel_reduce("updateAverageVelocity y", boidsData.nBoids,
-     KOKKOS_LAMBDA(const int index, float& value)
-     {
-       value += boidsData.flock(index).delta_pos[1];
-     }, vy);
-
-  vx /= boidsData.nBoids;
-  vy /= boidsData.nBoids;
-
-}
+} // BoidsData::shuffleEnnemies
 
 // ===================================================
 // ===================================================
@@ -73,24 +91,56 @@ void computeBoxData(BoidsData& boidsData)
   Kokkos::parallel_for("computeBoxCount",
                        boidsData.nBoids, KOKKOS_LAMBDA(const int& index)
   {
-    auto x = boidsData.flock(index).pos[0];
-    auto y = boidsData.flock(index).pos[1];
+    auto x = boidsData.x(index);
+    auto y = boidsData.y(index);
 
-    int iBox = pos2box(x,y,BoidsData::NBOX);
+    int iBox = pos2box(x,y);
 
     Kokkos::atomic_fetch_add( &(boidsData.boxCount(iBox)), 1);
+    //Kokkos::atomic_fetch_add( &(boidsData.box_dx(iBox)), boidsData.dx(index));
+    //Kokkos::atomic_fetch_add( &(boidsData.box_dy(iBox)), boidsData.dy(index));
+    Kokkos::atomic_fetch_add( &(boidsData.box_x(iBox)), x);
+    Kokkos::atomic_fetch_add( &(boidsData.box_y(iBox)), y);
 
     // update current boid color
-    boidsData.flock(index).color = iBox;
+    boidsData.color(index) = iBox;
 
   });
 
-  // sort boid's flock per color
-  //Kokkos::sort(boidsData.flock, true);
+  Kokkos::parallel_for("compute box average velocity",
+                       BoidsData::NBOX_X*BoidsData::NBOX_Y, KOKKOS_LAMBDA(const int& iBox)
+  {
+    auto n = boidsData.boxCount(iBox);
+    if (n > 0)
+    {
+      boidsData.box_x(iBox) /= n;
+      boidsData.box_y(iBox) /= n;
+    }
+    else
+    {
+      boidsData.box_x(iBox) = 0;
+      boidsData.box_y(iBox) = 0;
+    }
+  });
+
+  // sort boids per color
+  auto permutation = kboids::sort(boidsData.color);
+
+  // apply permutation to boids coordinates and displacements
+  kboids::apply_permutation(boidsData.x,  boidsData.tmp, permutation);
+  kboids::apply_permutation(boidsData.y,  boidsData.tmp, permutation);
+  kboids::apply_permutation(boidsData.dx, boidsData.tmp, permutation);
+  kboids::apply_permutation(boidsData.dy, boidsData.tmp, permutation);
+
+  // for (int i = 0; i<1000; ++i)
+  //   printf("%d %d %f %f %d %d\n",i,boidsData.color(i),boidsData.x(i),boidsData.y(i),
+  //          pos2box<0>(boidsData.x(i)),
+  //          pos2box<1>(boidsData.y(i)));
+
 
   // compute index to first boids of each color
   // using exclusive scan pattern
-  Kokkos::parallel_scan(boidsData.nBoids,
+  Kokkos::parallel_scan("Compute BoxIndex", BoidsData::NBOX_X*BoidsData::NBOX_Y,
      KOKKOS_LAMBDA(const int iBox,
                    int& update, const bool final)
      {
@@ -102,7 +152,10 @@ void computeBoxData(BoidsData& boidsData)
        update += iTmp;
      });
 
-}
+  /* for (int i = 0; i<BoidsData::NBOX*BoidsData::NBOX; ++i) */
+  /*   printf("%d %d %d\n",i,boidsData.boxCount(i),boidsData.boxIndex(i)); */
+
+} // computeBoxData
 
 // ===================================================
 // ===================================================
@@ -110,68 +163,87 @@ void updatePositions(BoidsData& boidsData)
 {
 
   // prepare data used in rule #2
-  float dx_av, dy_av;
-  updateAverageVelocity(boidsData, dx_av, dy_av);
-
-  // prepare data used in rule #3
-  // i.e. move away from close neighbors
+  // i.e. adjust velocity to close neighbors
   computeBoxData(boidsData);
 
+  const float centeringFactor = 0.00001;
+  const float matchingFactor = 0.03;
+  const float minDistance = 20;
+  const float avoidFactor = 0.02;
 
   Kokkos::parallel_for(boidsData.nBoids, KOKKOS_LAMBDA(const int& index)
   {
-    auto x = boidsData.flock(index).pos[0];
-    auto y = boidsData.flock(index).pos[1];
+    //
+    // rule #1 : flight towards center
+    //
+    const auto x = boidsData.x(index);
+    const auto y = boidsData.y(index);
 
-    auto delta_x = boidsData.flock(index).delta_pos[0];
-    auto delta_y = boidsData.flock(index).delta_pos[1];
+    float dx = boidsData.dx(index);
+    float dy = boidsData.dy(index);
 
-    // rule #1, move towards box center
-    float dx = -0.01 * x;
-    float dy = -0.01 * y;
+    float xc = (BoidsData::XMIN+BoidsData::XMAX)/2;
+    float yc = (BoidsData::YMIN+BoidsData::YMAX)/2;
+    dx += (xc-x) * centeringFactor;
+    dy += (yc-y) * centeringFactor;
 
-    // rule #2, update dx,dy by a restoring step toward
-    // average velocity
-    dx += 0.05 * (delta_x - dx_av);
-    dy += 0.05 * (delta_y - dy_av);
+    //
+    // rule #2, adjust velocity to move toward the gravity center of boids of same color
+    //
+    const auto color = boidsData.color(index);
+    //const int nbColors = BoidsData.NBOX_X * BoidsData::NBOX_Y;
 
-    // int i = pos2box(x,BoidsData::NBOX);
-    // int j = pos2box(y,BoidsData::NBOX);
+    //const auto box_dx = boidsData.box_dx(color);
+    //const auto box_dy = boidsData.box_dy(color);
+    const auto xg = boidsData.box_x(color);
+    const auto yg = boidsData.box_y(color);
+    dx += (xg-x) * matchingFactor;
+    dy += (yg-y) * matchingFactor;
 
-    // auto count = boidsData.boxCount(i,j);
-    // rule #3, move away from close neighbors
-    // float dir_x, dir_y;
-    // auto ie = boidsData.flock(index).ennemy;
-    // float xe = boidsData.flock(ie).pos[0];
-    // float ye = boidsData.flock(ie).pos[1];
-    // compute_direction(x, y, xe, ye, dir_x, dir_y);
-    // dx -= 0.00 * dir_x;
-    // dy -= 0.00 * dir_y;
+    //dx += matchingFactor * (box_dx - boidsData.dx(index));
+    //dy += matchingFactor * (box_dy - boidsData.dy(index));
+
+    /* float dx_n = 0; */
+    /* float dy_n = 0; */
+    /* { */
+    /*   auto beg = boidsData.boxIndex(color); */
+    /*   auto end = (color == nbColors-1) ? boidsData.nBoids : boidsData.boxIndex(color+1); */
+    /*   for (int i_n=beg; i_n<end; ++i_n) */
+    /*   { */
+    /*   } */
+    /* } */
+
+    //
+    // rule #3: avoid ennemy
+    //
+    auto index_ennemy = boidsData.ennemies(index);
+
+    float dir_x, dir_y;
+
+    compute_direction(x,y,
+                      boidsData.x(index_ennemy),
+                      boidsData.y(index_ennemy),
+                      dir_x, dir_y);
+
+    dx -= dir_x * avoidFactor;
+    dy -= dir_y * avoidFactor;
 
     // speed limit
     speedLimit(dx,dy);
 
-    // keep in the box
     keepInTheBox(x,y,dx,dy);
 
-    // update positions
-    boidsData.flock_new(index).pos[0] = x + dx;
-    boidsData.flock_new(index).pos[1] = y + dy;
+    // write final results
+    boidsData.dx(index) = dx;
+    boidsData.dy(index) = dy;
 
-    // update delta_pos
-    boidsData.flock_new(index).delta_pos[0] = dx;
-    boidsData.flock_new(index).delta_pos[1] = dy;
+    // final update
+    boidsData.x(index) += boidsData.dx(index);
+    boidsData.y(index) += boidsData.dy(index);
 
   });
 
-  // swap flock and flock_new
-  {
-    BoidsData::Flock tmp = boidsData.flock;
-    boidsData.flock      = boidsData.flock_new;
-    boidsData.flock_new  = tmp;
-  }
-
-}
+} // updatePositions
 
 // ===================================================
 // ===================================================
@@ -182,8 +254,8 @@ void copyPositionsForRendering(BoidsData& boidsData)
 
   Kokkos::parallel_for(boidsData.nBoids, KOKKOS_LAMBDA(const int& index)
   {
-    auto x = boidsData.flock(index).pos[0];
-    auto y = boidsData.flock(index).pos[1];
+    auto x = boidsData.x(index);
+    auto y = boidsData.y(index);
 
     boidsData.xy(2*index)   = (float)x;
     boidsData.xy(2*index+1) = (float)y;
@@ -191,4 +263,4 @@ void copyPositionsForRendering(BoidsData& boidsData)
 
 #endif
 
-}
+} // copyPositionsForRendering

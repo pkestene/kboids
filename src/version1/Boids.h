@@ -1,6 +1,7 @@
 #pragma once
 
 #include <math.h>
+#include <utility>
 
 // Include Kokkos Headers
 #include<Kokkos_Core.hpp>
@@ -11,70 +12,70 @@
 
 // ===================================================
 // ===================================================
-struct Boid
-{
-  KOKKOS_FUNCTION
-  Boid() :
-    pos{0,0},
-    delta_pos{0,0},
-    color(0)
-  {}
+// struct Boid
+// {
+//   KOKKOS_FUNCTION
+//   Boid() :
+//     pos{0,0},
+//     delta_pos{0,0},
+//     color(0)
+//   {}
 
-  KOKKOS_FUNCTION
-  Boid(int color) :
-    pos{0,0},
-    delta_pos{0,0},
-    color(color)
-  {}
+//   KOKKOS_FUNCTION
+//   Boid(int color) :
+//     pos{0,0},
+//     delta_pos{0,0},
+//     color(color)
+//   {}
 
-  //! boid position
-  float pos[2];
+//   //! boid position
+//   float pos[2];
 
-  //! boid displacement
-  float delta_pos[2];
+//   //! boid displacement
+//   float delta_pos[2];
 
-  //! boid color (= box index), used to sort boids
-  int color;
+//  //! boid color (= box index), used to sort boids
+//   int color;
 
-};
-
-// necessary for custom sort
-// neutral element for max/min operation
-namespace Kokkos {
-template <>
-struct reduction_identity<Boid> {
-
-  KOKKOS_FORCEINLINE_FUNCTION static Boid max() {
-    return Boid(INT_MAX);
-  }
-  KOKKOS_FORCEINLINE_FUNCTION static Boid min() {
-    return Boid(INT_MIN);
-  }
-};
-} // namespace Kokkos
+// };
 
 // ===================================================
 // ===================================================
 struct BoidsData
 {
-  using Flock    = Kokkos::View<Boid*,  Kokkos::DefaultExecutionSpace>;
+  //using Flock    = Kokkos::View<Boid*,  Kokkos::DefaultExecutionSpace>;
   using VecInt   = Kokkos::View<int*,   Kokkos::DefaultExecutionSpace>;
   using VecFloat = Kokkos::View<float*, Kokkos::DefaultExecutionSpace>;
 
-  static constexpr int NBOX = 10;
+  static constexpr float XMIN = 0;
+  static constexpr float XMAX = 150;
+  static constexpr float YMIN = 0;
+  static constexpr float YMAX = 150;
+
+  static constexpr int NBOX_X = 10;
+  static constexpr int NBOX_Y = 10;
 
   BoidsData(int nBoids)
     : nBoids(nBoids),
-      flock("flock",nBoids),
-      flock_new("flock_new",nBoids),
-      boxCount("box count", NBOX*NBOX),
-      boxIndex("box count integrated", NBOX*NBOX),
-      flock_host()
+      x("x",nBoids),
+      y("y",nBoids),
+      dx("dx",nBoids),
+      dy("dy",nBoids),
+      ennemies("ennemies",nBoids),
+      color("color", nBoids),
+      tmp("tmp",nBoids),
+      boxCount("box count", NBOX_X*NBOX_Y),
+      boxIndex("box count integrated", NBOX_X*NBOX_Y),
+      box_x("box average x", NBOX_X*NBOX_Y),
+      box_y("box average y", NBOX_X*NBOX_Y),
+      x_host(),
+      y_host()
 #ifdef FORGE_ENABLED
       ,xy("xy",2*nBoids)
 #endif
   {
-    flock_host = Kokkos::create_mirror(flock);
+    x_host = Kokkos::create_mirror(x);
+    y_host = Kokkos::create_mirror(y);
     resetBoxData();
   }
 
@@ -82,16 +83,27 @@ struct BoidsData
   {
     Kokkos::deep_copy(boxCount, 0);
     Kokkos::deep_copy(boxIndex, 0);
+    Kokkos::deep_copy(box_x, 0.0);
+    Kokkos::deep_copy(box_y, 0.0);
   }
 
   //! number of boids
   int nBoids;
 
-  //! set (flock) of boids
-  Flock flock;
+  //! set of boids coordinates
+  VecFloat x, y;
 
-  //! temp array of boids used to compute postion update (one time step)
-  Flock flock_new;
+  //! displacement (or velocity)
+  VecFloat dx, dy;
+
+  //! ennemies index
+  VecInt ennemies;
+
+  //! color (used for sorting)
+  VecInt color;
+
+  //! temp array of boids used to perform permutation
+  VecFloat tmp;
 
   //! box population
   VecInt boxCount;
@@ -99,8 +111,11 @@ struct BoidsData
   //! integrated box count
   VecInt boxIndex;
 
+  //! box average coordinates
+  VecFloat box_x, box_y;
+
   //! mirror of flock data on host (for image rendering only)
-  Flock::HostMirror flock_host;
+  VecFloat::HostMirror x_host, y_host;
 
 #ifdef FORGE_ENABLED
   VecFloat xy;
@@ -140,16 +155,23 @@ void initPositions(BoidsData& boidsData, MyRandomPool::RGPool_t& rand_pool);
 
 // ===================================================
 // ===================================================
+/**
+ * Randomly change ennemies.
+ */
+void shuffleEnnemies(BoidsData& boidsData, MyRandomPool::RGPool_t& rand_pool, float rate);
+
+// ===================================================
+// ===================================================
 void computeBoxData(BoidsData& boidsData);
 
 // ===================================================
 // ===================================================
-void updateAverageVelocity(BoidsData& boidsData, float& vx, float& vy);
+std::pair<float,float> updateAverageVelocity(BoidsData& boidsData);
 
 // ===================================================
 // ===================================================
 KOKKOS_INLINE_FUNCTION
-double SQR(const double& tmp) {return tmp*tmp;}
+double SQR(const double& v) {return v*v;}
 
 // ===================================================
 // ===================================================
@@ -168,7 +190,7 @@ void compute_direction(const float& x1, const float& y1,
   else
   {
     x = (x2-x1)/norm;
-    y = (y2-y2)/norm;
+    y = (y2-y1)/norm;
   }
 }
 
@@ -178,15 +200,21 @@ KOKKOS_INLINE_FUNCTION
 float compute_distance(float x1, float y1, float x2, float y2)
 {
   float d = sqrt( (x2-x1)*(x2-x1) + (y2-y1)*(y2-y1) );
-  return (d<1e-6) ? 0 : d;
+  return d; //(d<1e-6) ? 0 : d;
 }
 
 // ===================================================
 // ===================================================
+template<int dir>
 KOKKOS_INLINE_FUNCTION
-int pos2box(float x, int NBOX)
+int pos2box(float x)
 {
-  int i = (int) std::round( (x+1)/2*NBOX );
+
+  auto MIN = dir == 0 ? BoidsData::XMIN : BoidsData::YMIN;
+  auto MAX = dir == 0 ? BoidsData::XMAX : BoidsData::YMAX;
+  auto NBOX = dir == 0 ? BoidsData::NBOX_X : BoidsData::NBOX_Y;
+
+  int i = (int) std::floor( (x+MIN)/(MAX-MIN)*NBOX );
   if (i<0) i=0;
   if (i>= NBOX) i=NBOX-1;
   return i;
@@ -195,12 +223,12 @@ int pos2box(float x, int NBOX)
 // ===================================================
 // ===================================================
 KOKKOS_INLINE_FUNCTION
-int pos2box(float x, float y, int NBOX)
+int pos2box(float x, float y)
 {
-  int i = pos2box(x,NBOX);
-  int j = pos2box(y,NBOX);
+  int i = pos2box<0>(x);
+  int j = pos2box<1>(y);
 
-  return i+NBOX*j;
+  return i + BoidsData::NBOX_X * j;
 }
 
 // ===================================================
@@ -209,10 +237,11 @@ KOKKOS_INLINE_FUNCTION
 void speedLimit(float& dx, float& dy)
 {
   const auto speed = sqrt(dx*dx+dy*dy);
-  if (speed > 0)
+  const float speedLimit = 10;
+  if (speed > speedLimit)
   {
-    dx = (dx/speed) * 0.2;
-    dy = (dy/speed) * 0.2;
+    dx = (dx / speed) * speedLimit;
+    dy = (dy / speed) * speedLimit;
   }
 }
 
@@ -222,22 +251,36 @@ KOKKOS_INLINE_FUNCTION
 void keepInTheBox(float x, float y, float& dx, float& dy)
 {
 
-  float margin = 0.1;
+  float margin = 2*(BoidsData::XMAX-BoidsData::XMIN);
 
-  float turnFactor = 0.01;
+  float turnFactor = 1;
 
-  if (x < -1.0 + margin) {
+  if (x < BoidsData::XMIN + margin) {
     dx += turnFactor;
   }
-  if (x > 1.0 - margin) {
+  if (x > BoidsData::XMAX - margin) {
     dx -= turnFactor;
   }
-  if (y < -1.0 + margin) {
+  if (y < BoidsData::YMIN + margin) {
     dy += turnFactor;
   }
-  if (y > 1.0 - margin) {
+  if (y > BoidsData::YMAX - margin) {
     dy -= turnFactor;
   }
+
+  // float margin = 0.01*(BoidsData::XMAX-BoidsData::XMIN);
+  // if (x > BoidsData::XMIN - margin) {
+  //   dx = -dx;
+  // }
+  // if (x < BoidsData::XMAX + margin) {
+  //   dx = -dx;
+  // }
+  // if (y > BoidsData::YMIN - margin) {
+  //   dy = -dy;
+  // }
+  // if (y < BoidsData::YMAX + margin) {
+  //   dy = -dy;
+  // }
 
 }
 
