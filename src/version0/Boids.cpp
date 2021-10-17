@@ -18,8 +18,8 @@ void initPositions(BoidsData& boidsData, MyRandomPool::RGPool_t& rand_pool)
     rnd_t rand_gen = rand_pool.get_state();
 
     // birds positions
-    boidsData.flock(index).position[0] = Kokkos::rand<rnd_t,double>::draw(rand_gen, -1.0, 1.0);
-    boidsData.flock(index).position[1] = Kokkos::rand<rnd_t,double>::draw(rand_gen, -1.0, 1.0);
+    boidsData.x(index) = Kokkos::rand<rnd_t,double>::draw(rand_gen, -1.0, 1.0);
+    boidsData.y(index) = Kokkos::rand<rnd_t,double>::draw(rand_gen, -1.0, 1.0);
 
     // free random gen state, so that it can used by other threads later.
     rand_pool.free_state(rand_gen);
@@ -66,8 +66,8 @@ void updatePositions(BoidsData& boidsData)
 
   Kokkos::parallel_for(boidsData.nBoids, KOKKOS_LAMBDA(const int& index)
   {
-    auto x = boidsData.flock(index).position[0];
-    auto y = boidsData.flock(index).position[1];
+    auto x = boidsData.x(index);
+    auto y = boidsData.y(index);
 
     auto index_friend = boidsData.friends(index);
     auto index_ennemy = boidsData.ennemies(index);
@@ -76,32 +76,44 @@ void updatePositions(BoidsData& boidsData)
     double dx = -0.01 * x;
     double dy = -0.01 * y;
 
-    Boid dir;
+    float dir_x, dir_y;
 
     // rule #2, move towards friend
-    compute_direction(boidsData.flock(index),boidsData.flock(index_friend), dir);
-    dx += 0.05 * dir.position[0];
-    dy += 0.05 * dir.position[1];
+    compute_direction(x,y,
+                      boidsData.x(index_friend),
+                      boidsData.y(index_friend),
+                      dir_x, dir_y);
+    dx += 0.05 * dir_x;
+    dy += 0.05 * dir_y;
 
     // rule #3, move away from ennemy
-    compute_direction(boidsData.flock(index),boidsData.flock(index_ennemy), dir);
-    dx -= 0.03 * dir.position[0];
-    dy -= 0.03 * dir.position[1];
+    compute_direction(x,y,
+                      boidsData.x(index_ennemy),
+                      boidsData.y(index_ennemy),
+                      dir_x, dir_y);
+    dx -= 0.03 * dir_x;
+    dy -= 0.03 * dir_y;
 
     // update positions
-    boidsData.flock_new(index).position[0] = x + dx;
-    boidsData.flock_new(index).position[1] = y + dy;
+    boidsData.x_new(index) = x + dx;
+    boidsData.y_new(index) = y + dy;
 
     //printf("%d | %f %f | %f %f\n",index,x,y,x+dx,y+dy);
 
 
   });
 
-  // swap flock and flock_new
+  // swap old and new data
   {
-    BoidsData::Flock tmp = boidsData.flock;
-    boidsData.flock      = boidsData.flock_new;
-    boidsData.flock_new  = tmp;
+    auto tmp         = boidsData.x;
+    boidsData.x      = boidsData.x_new;
+    boidsData.x_new  = tmp;
+  }
+  // swap old and new data
+  {
+    auto tmp         = boidsData.y;
+    boidsData.y      = boidsData.y_new;
+    boidsData.y_new  = tmp;
   }
 
 }
@@ -115,8 +127,8 @@ void copyPositionsForRendering(BoidsData& boidsData)
 
   Kokkos::parallel_for(boidsData.nBoids, KOKKOS_LAMBDA(const int& index)
   {
-    auto x = boidsData.flock(index).position[0];
-    auto y = boidsData.flock(index).position[1];
+    auto x = boidsData.x(index);
+    auto y = boidsData.y(index);
 
     boidsData.xy(2*index)   = (float)x;
     boidsData.xy(2*index+1) = (float)y;
@@ -134,7 +146,8 @@ void renderPositions(PngData data, BoidsData& boidsData)
   auto scale = (data.extent(0)-1)/2.0;
 
   // 1. copy back on host boids positions
-  Kokkos::deep_copy(boidsData.flock_host, boidsData.flock);
+  Kokkos::deep_copy(boidsData.x_host, boidsData.x);
+  Kokkos::deep_copy(boidsData.y_host, boidsData.y);
 
   // 2. create image
   //auto pol = Kokkos::RangePolicy<>(Kokkos::OpenMP(), 0, boidsData.nBoids);
@@ -154,10 +167,10 @@ void renderPositions(PngData data, BoidsData& boidsData)
 
   for(int index=0; index<boidsData.nBoids; ++index)
   {
-    int i = (int) (floor((boidsData.flock_host(index).position[0]+1)*scale));
-    int j = (int) (floor((boidsData.flock_host(index).position[1]+1)*scale));
+    int i = (int) (floor((boidsData.x_host(index)+1)*scale));
+    int j = (int) (floor((boidsData.y_host(index)+1)*scale));
 
-    //printf("%d %d %d %f %f\n",index,i,j,boidsData.flock_host(index).position[0]+1,boidsData.flock_host(index).position[1]+1);
+    //printf("%d %d %d %f %f\n",index,i,j,boidsData.x_host(index)+1,boidsData.y_host(index)+1);
 
     if (i>=0 and i<data.extent(0) and
         j>=0 and j<data.extent(1))

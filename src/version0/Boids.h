@@ -9,15 +9,15 @@
 
 // ===================================================
 // ===================================================
-struct Boid
-{
-  KOKKOS_FUNCTION
-  Boid() :
-    position{0,0}
-  {}
+// struct Boid
+// {
+//   KOKKOS_FUNCTION
+//   Boid() :
+//     position{0,0}
+//   {}
 
-  double position[2];
-};
+//   double position[2];
+// };
 
 //! type alias for creating image
 using PngData = Kokkos::View<unsigned char***, Kokkos::LayoutRight, Kokkos::Serial>;
@@ -26,32 +26,35 @@ using PngData = Kokkos::View<unsigned char***, Kokkos::LayoutRight, Kokkos::Seri
 // ===================================================
 struct BoidsData
 {
-  using Flock  = Kokkos::View<Boid*, Kokkos::DefaultExecutionSpace>;
-  using VecInt = Kokkos::View<int*, Kokkos::DefaultExecutionSpace>;
+  using VecInt   = Kokkos::View<int*,   Kokkos::DefaultExecutionSpace>;
   using VecFloat = Kokkos::View<float*, Kokkos::DefaultExecutionSpace>;
 
   BoidsData(int nBoids)
     : nBoids(nBoids),
-      flock("flock",nBoids),
-      flock_new("flock_new",nBoids),
+      x("x",nBoids),
+      y("y",nBoids),
+      x_new("x_new",nBoids),
+      y_new("y_new",nBoids),
       friends("friends",nBoids),
       ennemies("ennemies",nBoids),
-      flock_host()
+      x_host(),
+      y_host()
 #ifdef FORGE_ENABLED
       ,xy("xy",2*nBoids)
 #endif
   {
-    flock_host = Kokkos::create_mirror(flock);
+    x_host = Kokkos::create_mirror(x);
+    y_host = Kokkos::create_mirror(y);
   }
 
   //! number of boids
-  int    nBoids;
+  int nBoids;
 
-  //! set (flock) of boids
-  Flock flock;
+  //! set of boids coordinates
+  VecFloat x, y;
 
   //! temp array of boids used to compute postion update (one time step)
-  Flock flock_new;
+  VecFloat x_new, y_new;
 
   //! vector of friend index
   VecInt friends;
@@ -59,8 +62,9 @@ struct BoidsData
   //! vector of enemy index
   VecInt ennemies;
 
-  //! mirror of flock data on host (for image rendering only)
-  Flock::HostMirror flock_host;
+  //! mirror of x,y data on host (for image rendering only)
+  VecFloat::HostMirror x_host;
+  VecFloat::HostMirror y_host;
 
 #ifdef FORGE_ENABLED
   VecFloat xy;
@@ -109,24 +113,26 @@ void shuffleFriendsAndEnnemies(BoidsData& boidsData, MyRandomPool::RGPool_t& ran
 // ===================================================
 // ===================================================
 KOKKOS_INLINE_FUNCTION
-double SQR(const double& tmp) {return tmp*tmp;}
+double SQR(const double& v) {return v*v;}
 
 // ===================================================
 // ===================================================
 KOKKOS_INLINE_FUNCTION
-void compute_direction(const Boid& b1, const Boid& b2,  Boid& dir)
+void compute_direction(const float& x1, const float& y1,
+                       const float& x2, const float& y2,
+                       float& x, float& y)
 {
-  double norm = sqrt( (b2.position[0]-b1.position[0])*(b2.position[0]-b1.position[0]) +
-                      (b2.position[1]-b1.position[1])*(b2.position[1]-b1.position[1]) );
+  double norm = sqrt( (x2-x1)*(x2-x1) +
+                      (y2-y1)*(y2-y1) );
   if (norm < 1e-6)
   {
-    dir.position[0] = 0;
-    dir.position[1] = 0;
+    x = 0;
+    y = 0;
   }
   else
   {
-    dir.position[0] = (b2.position[0]-b1.position[0])/norm;
-    dir.position[1] = (b2.position[1]-b1.position[1])/norm;
+    x = (x2-x1)/norm;
+    y = (y2-y1)/norm;
   }
 }
 
