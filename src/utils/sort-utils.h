@@ -94,8 +94,8 @@ sort(ViewType view)
 //===============================================================================
 template <class ViewType,
           class SizeType = unsigned int>
-void apply_permutation(ViewType view,
-                       ViewType view_tmp,
+void apply_permutation(ViewType& view,
+                       ViewType& view_tmp,
                        Kokkos::View<SizeType *, typename ViewType::device_type> permutation)
 {
   int const n = view.extent(0);
