@@ -56,7 +56,7 @@ void run_boids_flight(uint32_t nBoids, uint32_t nIter, uint64_t seed, bool dump_
       LIKWID_MARKER_STOP("updatePositions");
     }
 
-    if (iTime % 20 == 0)
+    if (iTime % 200 == 0)
       shuffleEnnemies(boidsData, myRandPool.pool, 0.1);
 
     timer.stop();
