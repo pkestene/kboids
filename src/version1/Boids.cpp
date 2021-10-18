@@ -20,34 +20,34 @@ void initPositions(BoidsData& boidsData, MyRandomPool::RGPool_t& rand_pool)
 
 // ===================================================
 // ===================================================
-/* std::pair<float,float> updateAverageVelocity(BoidsData& boidsData) */
-/* { */
+std::pair<float,float> updateAverageVelocity(BoidsData& boidsData)
+{
 
-/*   // this is just a reduction */
-/*   // we could also use a custom reducer, and place output directly in */
-/*   // device memory */
-/*   // see https://github.com/kokkos/kokkos/wiki/Custom-Reductions%3A-Built-In-Reducers-with-Custom-Scalar-Types */
+  // this is just a reduction
+  // we could also use a custom reducer, and place output directly in
+  // device memory
+  // see https://github.com/kokkos/kokkos/wiki/Custom-Reductions%3A-Built-In-Reducers-with-Custom-Scalar-Types
 
-/*   float vx, vy; */
+  float vx, vy;
 
-/*   Kokkos::parallel_reduce("updateAverageVelocity x", boidsData.nBoids, */
-/*      KOKKOS_LAMBDA(const int index, float& value) */
-/*      { */
-/*        value += boidsData.dx(index); */
-/*      }, vx); */
+  Kokkos::parallel_reduce("updateAverageVelocity x", boidsData.nBoids,
+     KOKKOS_LAMBDA(const int index, float& value)
+     {
+       value += boidsData.dx(index);
+     }, vx);
 
-/*   Kokkos::parallel_reduce("updateAverageVelocity y", boidsData.nBoids, */
-/*      KOKKOS_LAMBDA(const int index, float& value) */
-/*      { */
-/*        value += boidsData.dy(index); */
-/*      }, vy); */
+  Kokkos::parallel_reduce("updateAverageVelocity y", boidsData.nBoids,
+     KOKKOS_LAMBDA(const int index, float& value)
+     {
+       value += boidsData.dy(index);
+     }, vy);
 
-/*   vx /= boidsData.nBoids; */
-/*   vy /= boidsData.nBoids; */
+  vx /= boidsData.nBoids;
+  vy /= boidsData.nBoids;
 
-/*   return std::make_pair(vx,vy); */
+  return std::make_pair(vx,vy);
 
-/* } // updateAverageVelocity */
+} // updateAverageVelocity
 
 // ===================================================
 // ===================================================
@@ -95,22 +95,28 @@ void computeBoxData(BoidsData& boidsData)
   VecIntAtomic boxCount = boidsData.boxCount;
 
   using VecFloatAtomic = BoidsData::VecFloatAtomic;
-  VecFloatAtomic box_x = boidsData.box_x;
-  VecFloatAtomic box_y = boidsData.box_y;
+  VecFloatAtomic box_x  = boidsData.box_x;
+  VecFloatAtomic box_y  = boidsData.box_y;
+  VecFloatAtomic box_dx = boidsData.box_dx;
+  VecFloatAtomic box_dy = boidsData.box_dy;
 
   Kokkos::parallel_for("computeBoxCount",
                        boidsData.nBoids, KOKKOS_LAMBDA(const int& index)
   {
     auto x = boidsData.x(index);
     auto y = boidsData.y(index);
+    auto dx = boidsData.dx(index);
+    auto dy = boidsData.dy(index);
 
     int iBox = pos2box(x,y);
 
     //printf("index=%d %f %f | iBox=%d | %d %d\n",index,x,y,iBox,pos2box<0>(x),pos2box<1>(y));
 
     boxCount(iBox) += 1;
-    box_x(iBox) += x;
-    box_y(iBox) += y;
+    box_x(iBox)  += x;
+    box_y(iBox)  += y;
+    box_dx(iBox) += dx;
+    box_dy(iBox) += dy;
 
     // update current boid color
     boidsData.color(index) = iBox;
@@ -125,11 +131,15 @@ void computeBoxData(BoidsData& boidsData)
     {
       boidsData.box_x(iBox) /= n;
       boidsData.box_y(iBox) /= n;
+      boidsData.box_dx(iBox) /= n;
+      boidsData.box_dy(iBox) /= n;
     }
     else
     {
       boidsData.box_x(iBox) = 0;
       boidsData.box_y(iBox) = 0;
+      boidsData.box_dx(iBox) = 0;
+      boidsData.box_dy(iBox) = 0;
     }
   });
 
@@ -176,8 +186,13 @@ void updatePositions(BoidsData& boidsData)
   // i.e. adjust velocity to close neighbors
   computeBoxData(boidsData);
 
-  const float centeringFactor = 0.0005;
-  const float matchingFactor = 0.005;
+  // compute average velocity over all boids
+  auto vel = updateAverageVelocity(boidsData);
+  auto vx = std::get<0>(vel);
+  auto vy = std::get<1>(vel);
+
+  const float centeringFactor = 0.005;
+  const float matchingFactor = 0.05;
   const float minDistance = 20;
   const float avoidFactor = 0.05;
 
@@ -198,20 +213,22 @@ void updatePositions(BoidsData& boidsData)
     dy += (yc-y) * centeringFactor;
 
     //
-    // rule #2, adjust velocity to move toward the gravity center of boids of same color
+    // rule #2, adjust velocity to average velocity of boids of same color
     //
     const auto color = boidsData.color(index);
     //const int nbColors = BoidsData.NBOX_X * BoidsData::NBOX_Y;
 
-    //const auto box_dx = boidsData.box_dx(color);
-    //const auto box_dy = boidsData.box_dy(color);
-    const auto xg = boidsData.box_x(color);
-    const auto yg = boidsData.box_y(color);
-    dx += (xg-x) * matchingFactor;
-    dy += (yg-y) * matchingFactor;
+    const auto box_dx = boidsData.box_dx(color);
+    const auto box_dy = boidsData.box_dy(color);
+    // const auto xg = boidsData.box_x(color);
+    // const auto yg = boidsData.box_y(color);
+    // dx += (xg-x) * matchingFactor;
+    // dy += (yg-y) * matchingFactor;
 
     //dx += matchingFactor * (box_dx - boidsData.dx(index));
     //dy += matchingFactor * (box_dy - boidsData.dy(index));
+    dx += matchingFactor * (vx - boidsData.dx(index));
+    dy += matchingFactor * (vy - boidsData.dy(index));
 
     /* float dx_n = 0; */
     /* float dy_n = 0; */
@@ -224,19 +241,30 @@ void updatePositions(BoidsData& boidsData)
     /* } */
 
     //
-    // rule #3: avoid ennemy
+    // rule #3: avoid neighbor (= move away from local barycenter)
     //
-    auto index_ennemy = boidsData.ennemies(index);
+    //auto index_ennemy = boidsData.ennemies(index);
 
     float dir_x, dir_y;
 
+    const auto box_x = boidsData.box_x(color);
+    const auto box_y = boidsData.box_y(color);
+
     compute_direction(x,y,
-                      boidsData.x(index_ennemy),
-                      boidsData.y(index_ennemy),
+                      box_x,
+                      box_y,
                       dir_x, dir_y);
 
-    dx -= dir_x * avoidFactor;
-    dy -= dir_y * avoidFactor;
+    // compute_direction(x,y,
+    //                   boidsData.x(index_ennemy),
+    //                   boidsData.y(index_ennemy),
+    //                   dir_x, dir_y);
+
+    if(compute_distance(x,y,box_x,box_y)<minDistance)
+    {
+      dx -= dir_x * avoidFactor;
+      dy -= dir_y * avoidFactor;
+    }
 
     // speed limit
     speedLimit(dx,dy);

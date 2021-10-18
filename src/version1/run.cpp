@@ -94,10 +94,10 @@ void run_boids_flight_gui(uint32_t nBoids, uint32_t nIter, uint64_t seed, bool d
   forge::Chart chart(FG_CHART_2D);
   auto deltaX = BoidsData::XMAX-BoidsData::XMIN;
   auto deltaY = BoidsData::YMAX-BoidsData::YMIN;
-  chart.setAxesLimits(BoidsData::XMIN-1.5*deltaX,
-                      BoidsData::XMAX+1.5*deltaX,
-                      BoidsData::YMIN-1.5*deltaY,
-                      BoidsData::YMAX+1.5*deltaY);
+  chart.setAxesLimits(BoidsData::XMIN-0.5*deltaX,
+                      BoidsData::XMAX+0.5*deltaX,
+                      BoidsData::YMIN-0.5*deltaY,
+                      BoidsData::YMAX+0.5*deltaY);
 
   forge::Plot boidsXY =
     chart.plot(nBoids, forge::f32, FG_PLOT_SCATTER, FG_MARKER_CIRCLE);

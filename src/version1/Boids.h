@@ -55,8 +55,8 @@ struct BoidsData
   static constexpr float YMIN = 0;
   static constexpr float YMAX = 150;
 
-  static constexpr int NBOX_X = 15;
-  static constexpr int NBOX_Y = 15;
+  static constexpr int NBOX_X = 10;
+  static constexpr int NBOX_Y = 10;
 
   BoidsData(int nBoids)
     : nBoids(nBoids),
@@ -71,6 +71,8 @@ struct BoidsData
       boxIndex("box count integrated", NBOX_X*NBOX_Y),
       box_x("box average x", NBOX_X*NBOX_Y),
       box_y("box average y", NBOX_X*NBOX_Y),
+      box_dx("box average dx", NBOX_X*NBOX_Y),
+      box_dy("box average dy", NBOX_X*NBOX_Y),
       x_host(),
       y_host()
 #ifdef FORGE_ENABLED
@@ -88,6 +90,8 @@ struct BoidsData
     Kokkos::deep_copy(boxIndex, 0);
     Kokkos::deep_copy(box_x, 0.0);
     Kokkos::deep_copy(box_y, 0.0);
+    Kokkos::deep_copy(box_dx, 0.0);
+    Kokkos::deep_copy(box_dy, 0.0);
   }
 
   //! number of boids
@@ -114,8 +118,11 @@ struct BoidsData
   //! integrated box count
   VecInt boxIndex;
 
-  //! box average coordinates
+  //! box average position
   VecFloat box_x, box_y;
+
+  //! box average velocity
+  VecFloat box_dx, box_dy;
 
   //! mirror of flock data on host (for image rendering only)
   VecFloat::HostMirror x_host, y_host;
@@ -240,7 +247,7 @@ KOKKOS_INLINE_FUNCTION
 void speedLimit(float& dx, float& dy)
 {
   const auto speed = sqrt(dx*dx+dy*dy);
-  const float speedLimit = 15;
+  const float speedLimit = 20;
   if (speed > speedLimit)
   {
     dx = (dx / speed) * speedLimit;
