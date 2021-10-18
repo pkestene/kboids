@@ -47,13 +47,16 @@ struct BoidsData
   using VecInt   = Kokkos::View<int*,   Kokkos::DefaultExecutionSpace>;
   using VecFloat = Kokkos::View<float*, Kokkos::DefaultExecutionSpace>;
 
+  using VecIntAtomic = Kokkos::View<int*, Kokkos::DefaultExecutionSpace, Kokkos::MemoryTraits<Kokkos::Atomic>>;
+  using VecFloatAtomic = Kokkos::View<float*, Kokkos::DefaultExecutionSpace, Kokkos::MemoryTraits<Kokkos::Atomic>>;
+
   static constexpr float XMIN = 0;
   static constexpr float XMAX = 150;
   static constexpr float YMIN = 0;
   static constexpr float YMAX = 150;
 
-  static constexpr int NBOX_X = 10;
-  static constexpr int NBOX_Y = 10;
+  static constexpr int NBOX_X = 15;
+  static constexpr int NBOX_Y = 15;
 
   BoidsData(int nBoids)
     : nBoids(nBoids),
@@ -210,8 +213,8 @@ KOKKOS_INLINE_FUNCTION
 int pos2box(float x)
 {
 
-  auto MIN = dir == 0 ? BoidsData::XMIN : BoidsData::YMIN;
-  auto MAX = dir == 0 ? BoidsData::XMAX : BoidsData::YMAX;
+  auto MIN  = dir == 0 ? BoidsData::XMIN   : BoidsData::YMIN;
+  auto MAX  = dir == 0 ? BoidsData::XMAX   : BoidsData::YMAX;
   auto NBOX = dir == 0 ? BoidsData::NBOX_X : BoidsData::NBOX_Y;
 
   int i = (int) std::floor( (x+MIN)/(MAX-MIN)*NBOX );
@@ -237,7 +240,7 @@ KOKKOS_INLINE_FUNCTION
 void speedLimit(float& dx, float& dy)
 {
   const auto speed = sqrt(dx*dx+dy*dy);
-  const float speedLimit = 10;
+  const float speedLimit = 15;
   if (speed > speedLimit)
   {
     dx = (dx / speed) * speedLimit;

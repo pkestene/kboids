@@ -88,6 +88,16 @@ void computeBoxData(BoidsData& boidsData)
 
   // compute the number of boids per box
   // and compute boids color
+  // TODO:
+  // - alternative : use Kokkos::ScatterView instead of Kokkos memory traits atomic
+
+  using VecIntAtomic = BoidsData::VecIntAtomic;
+  VecIntAtomic boxCount = boidsData.boxCount;
+
+  using VecFloatAtomic = BoidsData::VecFloatAtomic;
+  VecFloatAtomic box_x = boidsData.box_x;
+  VecFloatAtomic box_y = boidsData.box_y;
+
   Kokkos::parallel_for("computeBoxCount",
                        boidsData.nBoids, KOKKOS_LAMBDA(const int& index)
   {
@@ -96,11 +106,11 @@ void computeBoxData(BoidsData& boidsData)
 
     int iBox = pos2box(x,y);
 
-    Kokkos::atomic_fetch_add( &(boidsData.boxCount(iBox)), 1);
-    //Kokkos::atomic_fetch_add( &(boidsData.box_dx(iBox)), boidsData.dx(index));
-    //Kokkos::atomic_fetch_add( &(boidsData.box_dy(iBox)), boidsData.dy(index));
-    Kokkos::atomic_fetch_add( &(boidsData.box_x(iBox)), x);
-    Kokkos::atomic_fetch_add( &(boidsData.box_y(iBox)), y);
+    //printf("index=%d %f %f | iBox=%d | %d %d\n",index,x,y,iBox,pos2box<0>(x),pos2box<1>(y));
+
+    boxCount(iBox) += 1;
+    box_x(iBox) += x;
+    box_y(iBox) += y;
 
     // update current boid color
     boidsData.color(index) = iBox;
@@ -132,10 +142,10 @@ void computeBoxData(BoidsData& boidsData)
   kboids::apply_permutation(boidsData.dx, boidsData.tmp, permutation);
   kboids::apply_permutation(boidsData.dy, boidsData.tmp, permutation);
 
-  // for (int i = 0; i<1000; ++i)
-  //   printf("%d %d %f %f %d %d\n",i,boidsData.color(i),boidsData.x(i),boidsData.y(i),
-  //          pos2box<0>(boidsData.x(i)),
-  //          pos2box<1>(boidsData.y(i)));
+   // for (int i = 0; i<100; ++i)
+   //   printf("%d %d | perm=%d |%f %f %d %d\n",i,boidsData.color(i),permutation(i),boidsData.x(i),boidsData.y(i),
+   //          pos2box<0>(boidsData.x(i)),
+   //          pos2box<1>(boidsData.y(i)));
 
 
   // compute index to first boids of each color
@@ -152,8 +162,8 @@ void computeBoxData(BoidsData& boidsData)
        update += iTmp;
      });
 
-  /* for (int i = 0; i<BoidsData::NBOX*BoidsData::NBOX; ++i) */
-  /*   printf("%d %d %d\n",i,boidsData.boxCount(i),boidsData.boxIndex(i)); */
+  //for (int i = 0; i<BoidsData::NBOX_X*BoidsData::NBOX_Y; ++i)
+  //  printf("%d %d %d | %f %f\n",i,boidsData.boxCount(i),boidsData.boxIndex(i),boidsData.box_x(i),boidsData.box_y(i));
 
 } // computeBoxData
 
@@ -166,10 +176,10 @@ void updatePositions(BoidsData& boidsData)
   // i.e. adjust velocity to close neighbors
   computeBoxData(boidsData);
 
-  const float centeringFactor = 0.00001;
-  const float matchingFactor = 0.03;
+  const float centeringFactor = 0.0005;
+  const float matchingFactor = 0.005;
   const float minDistance = 20;
-  const float avoidFactor = 0.02;
+  const float avoidFactor = 0.05;
 
   Kokkos::parallel_for(boidsData.nBoids, KOKKOS_LAMBDA(const int& index)
   {

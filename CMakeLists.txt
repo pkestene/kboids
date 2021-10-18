@@ -26,7 +26,7 @@ endif()
 #
 
 # use Nvidia Thrust for sort algorithms implementation
-find_package(Thrust)
+find_package(Thrust QUIET)
 if (Thrust_FOUND)
   if(Kokkos_ENABLE_CUDA)
     thrust_create_target(Thrust)
