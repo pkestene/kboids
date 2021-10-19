@@ -55,8 +55,17 @@ endif()
 # sources
 #
 
-# first build kokkos
+# build kokkos (not recommended but ok here)
+# it is not recommended for at least 2 reasons:
+# * it merges kokkos cmake build system into the top level cmake build system => there may be target name conflicts
+# * it enforce using the same compiler everywhere, but we may not need it (e.g. build the entire project with nvcc it not necessarily a good idea)
+#
+# Instead
+# - we could try to detect kokkos (spack installed or custom installed) using find_package
+# - we could use cmake ExternalProject_Add to build but, but this requires to pass config option to it.
 add_subdirectory(external/kokkos)
+
+# build command line parser
 add_subdirectory(external/argh)
 
 # build the miniapp
