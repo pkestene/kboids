@@ -60,7 +60,7 @@ void shuffleEnnemies(BoidsData& boidsData, MyRandomPool::RGPool_t& rand_pool, fl
 
   using rnd_t = MyRandomPool::rnd_t;
 
-  Kokkos::parallel_for(boidsData.nBoids, KOKKOS_LAMBDA(const int& index)
+  Kokkos::parallel_for("shuffleEnnemies", boidsData.nBoids, KOKKOS_LAMBDA(const int& index)
   {
     rnd_t rand_gen = rand_pool.get_state();
 
@@ -196,7 +196,7 @@ void updatePositions(BoidsData& boidsData)
   const float minDistance = 20;
   const float avoidFactor = 0.05;
 
-  Kokkos::parallel_for(boidsData.nBoids, KOKKOS_LAMBDA(const int& index)
+  Kokkos::parallel_for("updatePositions", boidsData.nBoids, KOKKOS_LAMBDA(const int& index)
   {
     //
     // rule #1 : flight towards center
@@ -290,7 +290,7 @@ void copyPositionsForRendering(BoidsData& boidsData)
 
 #ifdef FORGE_ENABLED
 
-  Kokkos::parallel_for(boidsData.nBoids, KOKKOS_LAMBDA(const int& index)
+  Kokkos::parallel_for("copyPositionsForRendering", boidsData.nBoids, KOKKOS_LAMBDA(const int& index)
   {
     auto x = boidsData.x(index);
     auto y = boidsData.y(index);

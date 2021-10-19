@@ -42,23 +42,24 @@ void shuffleFriendsAndEnnemies(BoidsData& boidsData, MyRandomPool::RGPool_t& ran
 
   using rnd_t = MyRandomPool::rnd_t;
 
-  Kokkos::parallel_for(boidsData.nBoids, KOKKOS_LAMBDA(const int& index)
-  {
-    rnd_t rand_gen = rand_pool.get_state();
-
-    float r = Kokkos::rand<rnd_t,float>::draw(rand_gen, 0, 1);
-
-    // shuffle friends and ennemies
-    if (r < rate)
+  Kokkos::parallel_for("shuffleFriendsAndEnnemies",boidsData.nBoids,
+    KOKKOS_LAMBDA(const int& index)
     {
-      boidsData.friends(index) = Kokkos::rand<rnd_t,int>::draw(rand_gen, boidsData.nBoids);
-      boidsData.ennemies(index) = Kokkos::rand<rnd_t,int>::draw(rand_gen, boidsData.nBoids);
-    }
+      rnd_t rand_gen = rand_pool.get_state();
 
-    // free random gen state, so that it can used by other threads later.
-    rand_pool.free_state(rand_gen);
+      float r = Kokkos::rand<rnd_t,float>::draw(rand_gen, 0, 1);
 
-  });
+      // shuffle friends and ennemies
+      if (r < rate)
+      {
+        boidsData.friends(index) = Kokkos::rand<rnd_t,int>::draw(rand_gen, boidsData.nBoids);
+        boidsData.ennemies(index) = Kokkos::rand<rnd_t,int>::draw(rand_gen, boidsData.nBoids);
+      }
+
+      // free random gen state, so that it can used by other threads later.
+      rand_pool.free_state(rand_gen);
+
+    });
 
 } // BoidsData::shuffleFriendsAndEnnemies
 
@@ -67,7 +68,7 @@ void shuffleFriendsAndEnnemies(BoidsData& boidsData, MyRandomPool::RGPool_t& ran
 void updatePositions(BoidsData& boidsData)
 {
 
-  Kokkos::parallel_for(boidsData.nBoids, KOKKOS_LAMBDA(const int& index)
+  Kokkos::parallel_for("updatePositions", boidsData.nBoids, KOKKOS_LAMBDA(const int& index)
   {
     auto x = boidsData.x(index);
     auto y = boidsData.y(index);
@@ -101,9 +102,6 @@ void updatePositions(BoidsData& boidsData)
     boidsData.x_new(index) = x + dx;
     boidsData.y_new(index) = y + dy;
 
-    //printf("%d | %f %f | %f %f\n",index,x,y,x+dx,y+dy);
-
-
   });
 
   // swap old and new data
@@ -119,7 +117,7 @@ void copyPositionsForRendering(BoidsData& boidsData)
 
 #ifdef FORGE_ENABLED
 
-  Kokkos::parallel_for(boidsData.nBoids, KOKKOS_LAMBDA(const int& index)
+  Kokkos::parallel_for("copyPositionsForRendering",boidsData.nBoids, KOKKOS_LAMBDA(const int& index)
   {
     auto x = boidsData.x(index);
     auto y = boidsData.y(index);
