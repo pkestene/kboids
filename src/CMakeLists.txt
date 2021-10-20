@@ -5,6 +5,7 @@ if (Forge_FOUND)
 endif()
 
 add_subdirectory(version0)
+add_subdirectory(version1)
 
 if (Thrust_FOUND)
   add_subdirectory(version2)
