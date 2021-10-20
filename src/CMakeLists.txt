@@ -7,5 +7,5 @@ endif()
 add_subdirectory(version0)
 
 if (Thrust_FOUND)
-  add_subdirectory(version1)
+  add_subdirectory(version2)
 endif()
