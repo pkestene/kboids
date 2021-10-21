@@ -6,7 +6,7 @@ Just a toy example code whose sole purpose is to help learning [Kokkos/C++ libra
 
 It is a simple model for simulating the flocking behaviour of birds.
 
-![boids_512x512](https://github.com/pkestene/kboids/blob/master/kboids_flight.png)
+![boids_512x512](https://github.com/pkestene/kboids/blob/master/boids_flight.gif)
 
 ## Software algorithm
 
