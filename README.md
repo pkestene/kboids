@@ -29,6 +29,10 @@ We revisit the implementation of this simple application using the [Kokkos](http
 - version1 is a bit more elaborated, we just refactored version0 to allow target backed to be chosen at run time; it also illustrate the use of lambda function inside class
 - version 2 (**unfinished**): it illustrates all the parallel patterns available in Kokkos (_parallel_for_, _parallel_reduce_ and _parallel_scan_), atomic access to memory, binning and sorting objects.
 
+Going further (TODO):
+- explore SIMD possibilities (through e.g. [kokkos/simd-math](https://github.com/kokkos/simd-math))
+- explore the benefit of using a AoSoA (Array-of-Structure-of-Array) data structure and also the linked-cell list algorithms provided by [Cabana](https://github.com/ECP-copa/Cabana)
+
 ## Software requirements
 
 All required dependencies are included as a git submodule ([kokkos](https://github.com/kokkos/kokkos), [argh](https://github.com/adishavit/argh))
