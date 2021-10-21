@@ -2,6 +2,8 @@
 
 #ifdef FORGE_ENABLED
 
+#ifdef KOKKOS_ENABLE_CUDA
+
 #include <forge.h>
 #define USE_FORGE_CUDA_COPY_HELPERS
 #include <fg/compute_copy.h>
@@ -61,5 +63,6 @@ void run_boids_flight_gui<Kokkos::Cuda>(uint32_t nBoids, uint32_t nIter, uint64_
   releaseGLBuffer(handles);
 
 } // run_boids_flight_gui
+#endif
 
 #endif // FORGE_ENABLED

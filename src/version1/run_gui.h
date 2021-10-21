@@ -20,7 +20,9 @@ void run_boids_flight_gui(uint32_t nBoids, uint32_t nIter, uint64_t seed, bool d
 template<>
 void run_boids_flight_gui<Kokkos::OpenMP>(uint32_t nBoids, uint32_t nIter, uint64_t seed, bool dump_data);
 
+#ifdef KOKKOS_ENABLE_CUDA
 template<>
 void run_boids_flight_gui<Kokkos::Cuda>(uint32_t nBoids, uint32_t nIter, uint64_t seed, bool dump_data);
+#endif
 
 #endif // FORGE_ENABLED
