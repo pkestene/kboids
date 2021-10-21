@@ -16,7 +16,7 @@ In this code, we implement two versions:
   * move towards a _friend_
   * move away from an _ennemy_
   Friends and ennemies are initialized randomly, and then changed once in a while.
-- a more elaborated version (unfinished) : birds moves according to 3 rules
+- a more elaborated version (**unfinished**) : birds moves according to 3 rules
   * move toward gravity center (barycenter of all other birds)
   * adjust velocity to the avraged velocity of all the birds
   * avoids nearby birds (all the in a small surrounding sphere)
@@ -27,7 +27,7 @@ We revisit the implementation of this simple application using the [Kokkos](http
 
 - version0 is the most naive implementation, Kokkos device is chosen at compile time
 - version1 is a bit more elaborated, we just refactored version0 to allow target backed to be chosen at run time; it also illustrate the use of lambda function inside class
-- version 2 (unfinished): it illustrates all the parallel patterns available in Kokkos (_parallel_for_, _parallel_reduce_ and _parallel_scan_), atomic access to memory, binning and sorting objects.
+- version 2 (**unfinished**): it illustrates all the parallel patterns available in Kokkos (_parallel_for_, _parallel_reduce_ and _parallel_scan_), atomic access to memory, binning and sorting objects.
 
 ## Software requirements
 
