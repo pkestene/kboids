@@ -4,3 +4,6 @@
 [submodule "argh"]
 	path = external/argh
 	url = git@github.com:adishavit/argh.git
+[submodule "simd-math"]
+	path = external/simd-math
+	url = git@github.com:pkestene/simd-math.git
