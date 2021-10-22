@@ -82,5 +82,5 @@ Example with SYCL as device
 # make sure you have compiler clang++ with sycl capability (https://github.com/intel/llvm)
 mkdir -p _build/sycl
 cd _build/sycl
-cmake -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_FLAGS="-fsycl -fsycl-targets=nvptx64-nvidia-cuda-sycldevice -fsycl-unnamed-lambda" -DKokkos_ENABLE_SYCL=ON ../..
+cmake -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_FLAGS="-fsycl -fsycl-targets=nvptx64-nvidia-cuda-sycldevice -fsycl-unnamed-lambda" -DKokkos_ENABLE_SYCL=ON ../..
 ```
