@@ -69,7 +69,8 @@ For a CGU/CUDA build, you just need to have Nvidia's `nvcc` compiler in your pat
 # for Kokkos::Cuda as default device
 mkdir -p _build/cuda
 cd _build/cuda
-# note: apparently setting CUB_DIR is required, but it shouldn't be necessary (to be investigated)
+# note: setting CUB_DIR is required if you using thrust from cuda toolkit 11.4 (should be fixed in 11.5)
+# see : https://github.com/NVIDIA/thrust/issues/1544
 cmake -DKokkos_ENABLE_CUDA:BOOL=ON -DKokkos_ARCH_TURING75:BOOL=ON -DKokkos_ENABLE_CUDA_LAMBDA:BOOL=ON -DCUB_DIR=$CUDA/DIR/include/cub/cmake ../..
 ```
 
