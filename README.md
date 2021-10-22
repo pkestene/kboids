@@ -74,3 +74,11 @@ cmake -DKokkos_ENABLE_CUDA:BOOL=ON -DKokkos_ARCH_TURING75:BOOL=ON -DKokkos_ENABL
 
 You can adjust the host compiler by setting environment variable `NVCC_WRAPPER_DEFAULT_COMPILER` (default is GNU g++).
 
+Example with SYCL as device
+```shell
+# for Kokkos::SYCL as default device
+# make sure you have compiler clang++ with sycl capability (https://github.com/intel/llvm)
+mkdir -p _build/sycl
+cd _build/sycl
+cmake -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_FLAGS="-fsycl -fsycl-targets=nvptx64-nvidia-cuda-sycldevice -fsycl-unnamed-lambda" -DKokkos_ENABLE_SYCL=ON ../..
+```
