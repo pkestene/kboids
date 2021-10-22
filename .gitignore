@@ -2,4 +2,5 @@ _build
 build_*
 compile_commands.json
 .ccls-cache
+.clangd
 
