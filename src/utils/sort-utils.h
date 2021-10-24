@@ -2,9 +2,11 @@
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Sort.hpp>
+#ifdef USE_THRUST_SORT
 #include <thrust/device_ptr.h>
+#include <thrust/execution_policy.h>
 #include <thrust/sort.h>
-
+#endif
 /*
  * The following is borrowed from ArborX :
  * https://github.com/arborx/ArborX
@@ -57,6 +59,39 @@ sort(ViewType view)
 
   int const n = view.extent(0);
 
+  // TODO : add execution space as template parameter
+  auto space = Kokkos::DefaultExecutionSpace{};
+
+#ifdef USE_THRUST_SORT
+
+  using ValueType = typename ViewType::value_type;
+  static_assert(std::is_same<std::decay_t<decltype(Kokkos::DefaultExecutionSpace{})>,
+                             typename ViewType::execution_space>::value,
+                "");
+
+  Kokkos::View<SizeType *, typename ViewType::device_type> permute(
+      Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                         "ArborX::Sorting::permutation"),
+      n);
+  iota(Kokkos::DefaultExecutionSpace{}, permute);
+
+#if defined(KOKKOS_ENABLE_CUDA)
+  auto const execution_policy = thrust::cuda::par.on(space.cuda_stream());
+#elif defined(KOKKOS_ENABLE_HIP)
+  auto const execution_policy = thrust::hip::par.on(space.hip_stream());
+#else
+  auto const execution_policy = thrust::omp::par;
+#endif
+
+  auto permute_ptr = thrust::device_ptr<SizeType>(permute.data());
+  auto begin_ptr = thrust::device_ptr<ValueType>(view.data());
+  auto end_ptr = thrust::device_ptr<ValueType>(view.data() + n);
+  thrust::sort_by_key(execution_policy, begin_ptr, end_ptr, permute_ptr);
+
+  return permute;
+
+#else // Kokkos::sort
+
   using range_policy = Kokkos::RangePolicy<typename ViewType::execution_space>;
   using ValueType    = typename ViewType::value_type;
   using CompType     = Kokkos::BinOp1D<ViewType>;
@@ -88,7 +123,9 @@ sort(ViewType view)
   bin_sort.sort(view);
 
   return bin_sort.get_permute_vector();
-}
+
+#endif
+} // sort
 
 //===============================================================================
 //===============================================================================

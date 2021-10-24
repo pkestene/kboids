@@ -7,6 +7,6 @@ endif()
 add_subdirectory(version0)
 add_subdirectory(version1)
 
-if (Thrust_FOUND AND NOT Kokkos_ENABLE_SYCL)
+if (NOT Kokkos_ENABLE_SYCL)
   add_subdirectory(version2)
 endif()

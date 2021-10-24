@@ -30,14 +30,17 @@ target_link_libraries(boids_v2
   argh
   io::lodepng)
 
-if(Kokkos_ENABLE_CUDA)
-  target_link_libraries(boids_v2
-    PRIVATE
-    Thrust)
-elseif(Kokkos_ENABLE_OPENMP)
-  target_link_libraries(boids_v2
-    PRIVATE
-    ThrustOMP)
+if(USE_THRUST_SORT)
+  target_compile_definitions(boids_v2 PRIVATE -DUSE_THRUST_SORT)
+  if(Kokkos_ENABLE_CUDA)
+    target_link_libraries(boids_v2
+      PRIVATE
+      Thrust)
+  elseif(Kokkos_ENABLE_OPENMP)
+    target_link_libraries(boids_v2
+      PRIVATE
+      ThrustOMP)
+  endif()
 endif()
 
 if(USE_LIKWID)
